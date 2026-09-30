@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { all, one, run, transaction } from './db.js';
@@ -17,6 +18,27 @@ const configuredOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map((or
 const allowedOrigins = process.env.NODE_ENV === 'production' ? configuredOrigins : [...new Set([...configuredOrigins, 'http://localhost:5173', 'http://127.0.0.1:5173'])];
 app.use(cors({ origin: (origin, callback) => !origin || allowedOrigins.includes(origin) ? callback(null, true) : callback(new Error('Origin tidak diizinkan')), credentials: true }));
 app.use(express.json({ limit: '1mb' }));
+// Security headers. CSP mengizinkan 'unsafe-inline' karena halaman masih memakai
+// <style>/<script> inline; tetap membatasi frame-ancestors, object-src, base-uri.
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  res.setHeader('Content-Security-Policy', [
+    "default-src 'self'",
+    "img-src 'self' data:",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "script-src 'self' 'unsafe-inline'",
+    "connect-src 'self'",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join('; '));
+  next();
+});
 const requestCounts = new Map();
 app.use((req, res, next) => { const key = req.ip || 'unknown'; const now = Date.now(); const entry = requestCounts.get(key) || { started: now, count: 0 }; if (now - entry.started > 60_000) { entry.started = now; entry.count = 0; } entry.count += 1; requestCounts.set(key, entry); if (entry.count > 120) return res.status(429).json({ error: 'Terlalu banyak request' }); next(); });
 
@@ -29,7 +51,35 @@ function getPricing(productId, quantity) { return one('SELECT * FROM price_tiers
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'atandra-commerce-api' }));
 app.post('/api/auth/register', (req, res) => { const { name, email, password, phone = '', company_name = '' } = req.body || {}; if (!name || !email || !password || password.length < 8) return res.status(400).json({ error: 'Nama, email, dan password minimal 8 karakter wajib diisi' }); if (one('SELECT id FROM users WHERE email=?', [email.toLowerCase()])) return res.status(409).json({ error: 'Email sudah terdaftar' }); const customer = run('INSERT INTO customers (name,email,phone,company_name) VALUES (?,?,?,?)', [name.trim(), email.toLowerCase(), phone, company_name]); const user = run('INSERT INTO users (email,password_hash,role,customer_id) VALUES (?,?,?,?)', [email.toLowerCase(), hashPassword(password), 'customer', customer.id]); setSessionCookie(res, createSession(user.id)); res.status(201).json({ user: { id: user.id, email: email.toLowerCase(), role: 'customer' } }); });
-app.post('/api/auth/admin-register', (req, res) => { const { name, email, password, invite_key: inviteKey } = req.body || {}; if (!process.env.ADMIN_INVITE_KEY || inviteKey !== process.env.ADMIN_INVITE_KEY) return res.status(403).json({ error: 'Admin invite key tidak valid' }); if (!name || !email || !password || password.length < 8) return res.status(400).json({ error: 'Nama, email, dan password minimal 8 karakter wajib diisi' }); const normalizedEmail = email.toLowerCase(); if (one('SELECT id FROM users WHERE email=?', [normalizedEmail])) return res.status(409).json({ error: 'Email sudah terdaftar' }); const customer = run('INSERT INTO customers (name,email,company_name) VALUES (?,?,?)', [name.trim(), normalizedEmail, 'Atandra Textile Supply']); const user = run('INSERT INTO users (email,password_hash,role,customer_id) VALUES (?,?,?,?)', [normalizedEmail, hashPassword(password), 'admin', customer.id]); setSessionCookie(res, createSession(user.id)); res.status(201).json({ user: { id: user.id, email: normalizedEmail, role: 'admin' } }); });
+const adminRegistrationAttempts = new Map();
+app.post('/api/auth/admin-register', (req, res) => {
+  const { name, email, password, invite_key: inviteKey } = req.body || {};
+  const configured = process.env.ADMIN_INVITE_KEY;
+  // Kunci harus benar-benar dikonfigurasi, bukan nilai contoh, dan cukup panjang.
+  if (!configured || configured === 'change-this-invite-key' || configured === 'admin-registration-secret' || configured.length < 16) {
+    return res.status(503).json({ error: 'Registrasi admin belum dikonfigurasi' });
+  }
+  const ip = req.ip || 'unknown';
+  const now = Date.now();
+  const entry = adminRegistrationAttempts.get(ip) || { started: now, count: 0 };
+  if (now - entry.started > 60 * 60 * 1000) { entry.started = now; entry.count = 0; }
+  entry.count += 1;
+  adminRegistrationAttempts.set(ip, entry);
+  if (entry.count > 5) return res.status(429).json({ error: 'Terlalu banyak percobaan registrasi admin' });
+  // Bandingkan dalam waktu konstan supaya tidak bisa ditebak lewat timing.
+  const provided = Buffer.from(String(inviteKey || ''));
+  const expected = Buffer.from(configured);
+  const keyOk = provided.length === expected.length && crypto.timingSafeEqual(provided, expected);
+  if (!keyOk) return res.status(403).json({ error: 'Admin invite key tidak valid' });
+  if (!name || !email || !password || password.length < 8) return res.status(400).json({ error: 'Nama, email, dan password minimal 8 karakter wajib diisi' });
+  const normalizedEmail = email.toLowerCase();
+  if (one('SELECT id FROM users WHERE email=?', [normalizedEmail])) return res.status(409).json({ error: 'Email sudah terdaftar' });
+  const customer = run('INSERT INTO customers (name,email,company_name) VALUES (?,?,?)', [name.trim(), normalizedEmail, 'Atandra Textile Supply']);
+  const user = run('INSERT INTO users (email,password_hash,role,customer_id) VALUES (?,?,?,?)', [normalizedEmail, hashPassword(password), 'admin', customer.id]);
+  setSessionCookie(res, createSession(user.id));
+  console.warn(`[security] admin baru didaftarkan: ${normalizedEmail} dari ${ip}`);
+  res.status(201).json({ user: { id: user.id, email: normalizedEmail, role: 'admin' } });
+});
 app.post('/api/auth/login', (req, res) => { const { email, password } = req.body || {}; const user = one('SELECT * FROM users WHERE email=? AND active=1', [String(email || '').toLowerCase()]); if (!user || !verifyPassword(password, user.password_hash)) return res.status(401).json({ error: 'Email atau password salah' }); setSessionCookie(res, createSession(user.id)); res.json({ user: { id: user.id, email: user.email, role: user.role } }); });
 app.post('/api/auth/logout', (req, res) => { const user = currentUser(req); if (user) { const token = req.headers.cookie?.split(';').find((item) => item.trim().startsWith('atandra_session='))?.split('=')[1]; if (token) run('DELETE FROM sessions WHERE token=?', [decodeURIComponent(token)]); } clearSessionCookie(res); res.status(204).end(); });
 app.get('/api/auth/me', requireAuth, (req, res) => res.json({ user: req.user }));
@@ -52,8 +102,44 @@ app.post('/api/orders', (req, res) => {
     res.status(201).json(result);
   } catch (error) { res.status(400).json({ error: error.message }); }
 });
-app.get('/api/orders/:id', (req, res) => { const order = one('SELECT o.*, c.name AS customer_name,c.email,c.phone,a.full_name,a.address,a.province,a.city,a.district,a.postal_code,p.status AS payment_status,p.provider_reference,s.method,s.estimated_days,s.tracking_number FROM orders o LEFT JOIN customers c ON c.id=o.customer_id LEFT JOIN addresses a ON a.id=o.address_id LEFT JOIN payments p ON p.order_id=o.id LEFT JOIN shipments s ON s.order_id=o.id WHERE o.id=? OR o.order_number=?', [req.params.id, req.params.id]); if (!order) return res.status(404).json({ error: 'Order tidak ditemukan' }); res.json({ order, items: all('SELECT * FROM order_items WHERE order_id=(SELECT id FROM orders WHERE id=? OR order_number=?)', [req.params.id, req.params.id]) }); });
-app.post('/api/orders/:id/mock-payment', (req, res) => { if (process.env.NODE_ENV === 'production' || req.headers['x-dev-payment-key'] !== (process.env.DEV_PAYMENT_KEY || 'local-only')) return res.status(404).json({ error: 'Endpoint tidak tersedia' }); const order = one('SELECT * FROM orders WHERE id=? OR order_number=?', [req.params.id, req.params.id]); if (!order) return res.status(404).json({ error: 'Order tidak ditemukan' }); transaction(() => { run("UPDATE payments SET status='paid',paid_at=CURRENT_TIMESTAMP WHERE order_id=?", [order.id]); run("UPDATE orders SET status='paid',updated_at=CURRENT_TIMESTAMP WHERE id=?", [order.id]); all('SELECT variant_id,quantity FROM order_items WHERE order_id=?', [order.id]).forEach((item) => run('UPDATE inventory SET stock=stock-?,reserved_stock=reserved_stock-? WHERE variant_id=?', [item.quantity, item.quantity, item.variant_id])); }); notifications.emit('payment_received', { orderNumber: order.order_number }); res.json({ ok: true, status: 'paid' }); });
+// Order detail. Guest boleh cek status pesanannya (tanpa data pribadi);
+// detail lengkap (nama/email/telepon/alamat) hanya untuk pemilik atau admin.
+app.get('/api/orders/:id', (req, res) => {
+  const order = one('SELECT * FROM orders WHERE id=? OR order_number=?', [req.params.id, req.params.id]);
+  if (!order) return res.status(404).json({ error: 'Order tidak ditemukan' });
+  const items = all('SELECT product_name, variant_name, sku, quantity, unit_price, subtotal FROM order_items WHERE order_id=?', [order.id]);
+  const user = currentUser(req);
+  const isOwner = Boolean(user && order.customer_id && user.customer_id === order.customer_id);
+  const isAdmin = Boolean(user && user.role === 'admin');
+  const base = {
+    order_number: order.order_number,
+    status: order.status,
+    subtotal: order.subtotal,
+    discount: order.discount,
+    shipping: order.shipping,
+    total: order.total,
+    tracking_number: order.tracking_number,
+    created_at: order.created_at,
+    updated_at: order.updated_at,
+  };
+  if (!isOwner && !isAdmin) return res.json({ order: base, items });
+  const detail = one('SELECT o.*, c.name AS customer_name,c.email,c.phone,a.full_name,a.address,a.province,a.city,a.district,a.postal_code,p.status AS payment_status,p.provider_reference,s.method,s.estimated_days,s.tracking_number FROM orders o LEFT JOIN customers c ON c.id=o.customer_id LEFT JOIN addresses a ON a.id=o.address_id LEFT JOIN payments p ON p.order_id=o.id LEFT JOIN shipments s ON s.order_id=o.id WHERE o.id=?', [order.id]);
+  res.json({ order: detail, items: all('SELECT * FROM order_items WHERE order_id=?', [order.id]) });
+});
+app.post('/api/orders/:id/mock-payment', (req, res) => {
+  // Hanya untuk pengembangan lokal. Tolak kalau production, atau kalau
+  // DEV_PAYMENT_KEY tidak di-set, masih nilai default, atau terlalu pendek.
+  const key = process.env.DEV_PAYMENT_KEY;
+  if (process.env.NODE_ENV === 'production' || !key || key === 'local-only' || key.length < 12) {
+    return res.status(404).json({ error: 'Endpoint tidak tersedia' });
+  }
+  if (req.headers['x-dev-payment-key'] !== key) return res.status(404).json({ error: 'Endpoint tidak tersedia' });
+  const order = one('SELECT * FROM orders WHERE id=? OR order_number=?', [req.params.id, req.params.id]);
+  if (!order) return res.status(404).json({ error: 'Order tidak ditemukan' });
+  transaction(() => { run("UPDATE payments SET status='paid',paid_at=CURRENT_TIMESTAMP WHERE order_id=?", [order.id]); run("UPDATE orders SET status='paid',updated_at=CURRENT_TIMESTAMP WHERE id=?", [order.id]); all('SELECT variant_id,quantity FROM order_items WHERE order_id=?', [order.id]).forEach((item) => run('UPDATE inventory SET stock=stock-?,reserved_stock=reserved_stock-? WHERE variant_id=?', [item.quantity, item.quantity, item.variant_id])); });
+  notifications.emit('payment_received', { orderNumber: order.order_number });
+  res.json({ ok: true, status: 'paid' });
+});
 app.get('/api/account/profile', requireAuth, (req, res) => { const customer = one('SELECT id,name,email,phone,company_name,created_at FROM customers WHERE id=?', [req.user.customer_id]); if (!customer) return res.status(404).json({ error: 'Profil customer tidak ditemukan' }); res.json({ customer }); });
 app.patch('/api/account/profile', requireAuth, (req, res) => { const { name, phone = '', company_name = '' } = req.body || {}; if (!name?.trim()) return res.status(400).json({ error: 'Nama wajib diisi' }); run('UPDATE customers SET name=?,phone=?,company_name=? WHERE id=?', [name.trim(), phone.trim(), company_name.trim(), req.user.customer_id]); res.json({ customer: one('SELECT id,name,email,phone,company_name,created_at FROM customers WHERE id=?', [req.user.customer_id]) }); });
 app.get('/api/account/addresses', requireAuth, (req, res) => res.json({ addresses: all('SELECT * FROM addresses WHERE customer_id=? ORDER BY id DESC', [req.user.customer_id]) }));

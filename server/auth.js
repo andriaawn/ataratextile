@@ -60,15 +60,32 @@ export function requireRole(role) {
   };
 }
 
+const WEAK_PASSWORDS = new Set([
+  'password', 'password123', 'admin', 'admin123', 'change-this-password',
+  'changeme', '12345678', '123456789', 'qwerty123', 'letmein123',
+  'atandra', 'atandra123', 'admin12345', 'password1',
+]);
+
 export function seedAdmin() {
   const email = process.env.ADMIN_EMAIL;
   const password = process.env.ADMIN_PASSWORD;
   if (!email || !password || password.length < 8) return;
+  // Tolak password admin yang lemah/umum. Di production ini fatal (server tidak
+  // boleh jalan dengan kredensial default); di development hanya peringatan.
+  if (WEAK_PASSWORDS.has(password.toLowerCase())) {
+    const message = `ADMIN_PASSWORD terlalu lemah/umum ("${password}"). Ganti dengan password acak minimal 12 karakter.`;
+    if (process.env.NODE_ENV === 'production') {
+      console.error(`[FATAL] ${message}`);
+      process.exit(1);
+    }
+    console.warn(`[security] ${message}`);
+  }
   const existing = one('SELECT id,role,password_hash FROM users WHERE email=?', [email.toLowerCase()]);
   if (existing) {
-    if (existing.role === 'admin' && !verifyPassword(password, existing.password_hash)) {
+    // Jangan reset password admin yang sudah ada kecuali diminta eksplisit.
+    if (existing.role === 'admin' && process.env.ADMIN_PASSWORD_RESET === 'true' && !verifyPassword(password, existing.password_hash)) {
       run('UPDATE users SET password_hash=?,active=1 WHERE id=?', [hashPassword(password), existing.id]);
-      console.info(`Admin password synchronized for ${existing.id}.`);
+      console.info(`Admin password reset for ${existing.id}.`);
     }
     return;
   }
