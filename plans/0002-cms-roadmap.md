@@ -4,6 +4,9 @@
 **Status:** 📋 backlog — belum mulai, menunggu pilihan user
 **Owner:** andriaawn
 **Turunan dari:** `logs/2026-09-30_plan-cms.md` (dipindah ke sini sesuai konvensi)
+**Dokumen pendukung:**
+- [`docs/cms-architecture.md`](../docs/cms-architecture.md) — model CMS (7 modul, layar per modul)
+- [`docs/design-system.md`](../docs/design-system.md) — kontrak desain (layout, tipografi, warna, komponen)
 
 ---
 

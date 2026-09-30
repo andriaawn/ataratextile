@@ -12,8 +12,10 @@ Commerce foundation for Atandra Textile Supply, preserving the original landing 
 | [`HANDOFF.md`](HANDOFF.md) | Kondisi terkini, infrastruktur, pitfalls |
 | [`plans/ROADMAP.md`](plans/ROADMAP.md) | Apa yang sudah selesai & apa yang tersisa |
 | [`BACKLOG.md`](BACKLOG.md) | Ide yang ditunda + alasan + trigger |
-| [`docs/architecture.md`](docs/architecture.md) | Arsitektur, model data, alur order, keamanan |
+| [`docs/architecture.md`](docs/architecture.md) | Arsitektur sistem, model data, alur order, keamanan |
 | [`docs/api.md`](docs/api.md) | Referensi 34 endpoint API |
+| [`docs/cms-architecture.md`](docs/cms-architecture.md) | Model CMS: 7 modul, layar per modul |
+| [`docs/design-system.md`](docs/design-system.md) | Kontrak desain admin (warna, tipografi, komponen) |
 
 **Alur kerja:** plan → approve → implement → test → log → commit. Plan di [`plans/`](plans/), catatan kerja di `logs/` (lokal saja, tidak di-commit).
 
