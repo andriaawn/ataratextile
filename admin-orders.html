@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pesanan — Admin Atandra</title>
+<link rel="stylesheet" href="/store.css">
+</head>
+<body class="admin">
+<header class="admin-nav">
+  <div class="store-wrap store-nav">
+    <a class="store-brand" href="/admin.html">ATANDRA <small>COMMERCE ADMIN</small></a>
+    <a href="/shop.html">Lihat storefront ↗</a>
+  </div>
+</header>
+
+<main class="store-wrap admin-layout">
+  <aside class="admin-side">
+    <a href="/admin.html">Dashboard</a>
+    <a class="active" href="/admin-orders.html">Pesanan</a>
+    <a href="/admin-products.html">Produk</a>
+  </aside>
+
+  <section class="admin-main">
+
+    <!-- Panel login (tampil kalau belum login) -->
+    <div id="orders-auth" class="form-panel" hidden>
+      <div class="eyebrow">Area terbatas</div>
+      <h1>Akses admin</h1>
+      <p>Login dengan akun admin untuk mengelola pesanan.</p>
+      <div class="field-grid">
+        <div class="field"><label for="admin-email">Email</label><input id="admin-email" type="email" autocomplete="email"></div>
+        <div class="field"><label for="admin-password">Password</label><input id="admin-password" type="password" autocomplete="current-password"></div>
+      </div>
+      <button class="btn btn--primary" id="admin-login">Login admin</button>
+      <p id="orders-auth-message" class="notice" hidden></p>
+    </div>
+
+    <!-- Workspace -->
+    <div id="orders-workspace" hidden>
+
+      <div class="page-head">
+        <div>
+          <div class="eyebrow">Operasional</div>
+          <h1>Pesanan</h1>
+          <p>Pesanan mana yang perlu dikerjakan hari ini? Ubah status langsung dari tabel, atau buka detail untuk alamat dan resi.</p>
+        </div>
+        <button class="btn" id="orders-refresh">Muat ulang</button>
+      </div>
+
+      <div class="kpi-strip" id="order-kpis"></div>
+
+      <div class="filter-bar">
+        <input type="search" id="order-search" placeholder="Cari nomor order, nama, atau email…" aria-label="Cari pesanan">
+        <div id="status-chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nomor</th>
+              <th>Tanggal</th>
+              <th>Pelanggan</th>
+              <th>Status</th>
+              <th class="num">Total</th>
+              <th>Ubah status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="order-rows"></tbody>
+        </table>
+      </div>
+
+      <p class="sub" id="orders-count" style="color:var(--muted);font-size:12px;margin:0"></p>
+    </div>
+  </section>
+</main>
+
+<!-- Drawer detail -->
+<div class="drawer-backdrop" id="drawer-backdrop"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true">
+  <div class="drawer-head">
+    <h2 id="drawer-title">Detail pesanan</h2>
+    <button class="btn" id="drawer-close" aria-label="Tutup detail">Tutup</button>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+  <div class="drawer-foot" id="drawer-foot"></div>
+</aside>
+
+<!-- Modal konfirmasi -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <h3 id="modal-title">Konfirmasi</h3>
+    <p id="modal-text"></p>
+    <div class="modal-actions">
+      <button class="btn" id="modal-cancel">Batal</button>
+      <button class="btn btn--primary" id="modal-confirm">Ya, lanjutkan</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts" aria-live="polite"></div>
+
+<script type="module" src="/admin-orders.js"></script>
+</body>
+</html>

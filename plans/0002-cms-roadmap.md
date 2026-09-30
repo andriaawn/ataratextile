@@ -122,16 +122,19 @@ dikelola dari UI — tanpa mengubah backend yang sudah matang dan aman.
 
 ---
 
-## Acceptance criteria (Fase 1)
+## Acceptance criteria (Fase 1) — ✅ SELESAI 2026-09-30
 
-- [ ] `admin-orders.html` menampilkan order dari `GET /api/admin/orders`
-- [ ] Filter status + search berfungsi
-- [ ] Detail order menampilkan item + alamat + pembeli + total
-- [ ] Ubah status via `PATCH /api/admin/orders/:id`, transisi divalidasi
-- [ ] Input resi tersimpan
-- [ ] Sidebar `Orders` mengarah ke halaman yang benar
-- [ ] Dites dengan order nyata (bukan cuma "harusnya jalan")
-- [ ] Nol regresi: `tests/security.test.sh` tetap lulus
+- [x] `admin-orders.html` menampilkan order dari `GET /api/admin/orders`
+- [x] Filter status + search berfungsi
+- [x] Detail order menampilkan item + alamat + pembeli + total
+- [x] Ubah status via `PATCH /api/admin/orders/:id`, transisi divalidasi (dropdown hanya menampilkan transisi sah)
+- [x] Input resi tersimpan (orders + shipments)
+- [x] Sidebar `Orders` mengarah ke halaman yang benar
+- [x] Dites dengan order nyata (3 order dibuat → diuji di browser → dihapus lagi)
+- [x] Nol regresi: `tests/security.test.sh` tetap lulus + `tests/admin-orders.test.sh` 12/12
+- [x] Kontras `--rust` & `--muted` diperbaiki (diukur WCAG: 5.12/4.59 & 5.55/4.97)
+
+**Bukti:** `tests/admin-orders.test.sh` (12 PASS), negative control (test GAGAL saat token lama dikembalikan), verifikasi browser (ubah status, modal konfirmasi, resi, deep-link `?id=`, responsive 380px).
 
 ---
 

@@ -19,6 +19,7 @@ export default defineConfig({
 				product: path.resolve(root, 'product.html'),
 				checkout: path.resolve(root, 'checkout.html'),
 				admin: path.resolve(root, 'admin.html'),
+				adminOrders: path.resolve(root, 'admin-orders.html'),
 				adminProducts: path.resolve(root, 'admin-products.html'),
 				account: path.resolve(root, 'account.html'),
 				accountOrders: path.resolve(root, 'account-orders.html'),

@@ -109,13 +109,13 @@ Harga pakai `DM Mono` di tabel.
 
 ## 4. Warna
 
-Palet brand dipertahankan, **tapi 2 warna diperbaiki karena gagal kontras** (diukur, bukan
-dikira):
+Palet brand dipertahankan, **2 warna diperbaiki karena gagal kontras** (diukur, bukan
+dikira). **Sudah diterapkan di `store.css`** — satu titik ubah via token:
 
 | Token | Sebelum | Sesudah | Kenapa |
 |---|---|---|---|
-| `--accent` (rust) | `#b9653b` | **`#a8562f`** | 4.14 → **5.12** di paper; 3.71 → **4.59** di cream. Sekarang lolos AA untuk teks normal |
-| `--text-secondary` | `#687777` | **`#5c6a6a`** | 4.12 → **4.97** di cream. Lolos AA di dua surface |
+| `--rust` | `#b9653b` | **`#a8562f`** ✅ diterapkan | 4.14 → **5.12** di paper; 3.71 → **4.59** di cream. Sekarang lolos AA untuk teks normal |
+| `--muted` | `#687777` | **`#5c6a6a`** ✅ diterapkan | 4.12 → **4.97** di cream. Lolos AA di dua surface |
 
 Sisanya sudah bagus dan dipertahankan (`ink` 14.8:1, `gold` di `ink` 7.3:1).
 

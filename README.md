@@ -59,7 +59,7 @@ Run the Vite storefront in a second terminal:
 npm run dev
 ```
 
-Open `http://localhost:5173/` for the landing page. The storefront is available at `/shop.html`, product details at `/product.html?slug=...`, checkout at `/checkout.html`, and the operational overview at `/admin.html`.
+Open `http://localhost:5173/` for the landing page. The storefront is available at `/shop.html`, product details at `/product.html?slug=...`, checkout at `/checkout.html`, and the admin workspace at `/admin.html` (dashboard), `/admin-orders.html` (orders), and `/admin-products.html` (catalog).
 
 The API runs at `http://localhost:8787` and uses a local SQLite database at `data/atandra.sqlite`. The database is generated and ignored by Git.
 
@@ -109,7 +109,11 @@ Payment and shipping are provider abstractions. The current local provider is ma
 
 ## Phase 2 admin
 
+Open `http://localhost:5173/admin-orders.html` after logging in as an admin. The orders workspace shows a KPI strip, status filter chips, search, an order table with inline status change, a detail drawer (items, address, buyer, payment, shipment), tracking-number input, and a confirmation modal for destructive status changes (cancelled/refunded). Only legal status transitions are offered in the dropdown; the server validates again. A deep link `?id=<order id>` opens the detail drawer directly.
+
 Open `http://localhost:5173/admin-products.html` after logging in as an admin. The workspace supports product creation, soft archive, category and color creation, variant creation, price updates, inventory adjustment, and quantity pricing tiers. Product deletion never removes historical records; it changes the product status to `archived`.
+
+Tests: `bash tests/security.test.sh <BASE_URL> <ADMIN_EMAIL> <ADMIN_PASSWORD>` and `bash tests/admin-orders.test.sh <BASE_URL> <ADMIN_EMAIL> <ADMIN_PASSWORD>`. Run them against a throwaway database, not production data.
 
 ## Phase 3 customer account
 

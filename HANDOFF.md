@@ -49,17 +49,17 @@ log → commit**. Nol kode sebelum plan disetujui. Push butuh approval terpisah.
 - **Roadmap:** [`plans/ROADMAP.md`](plans/ROADMAP.md)
 - **Angka penting:** 11 produk · 44 varian · 1 kategori · 4 warna · **0 order** ·
   1 akun admin · 34 endpoint API
-- **Deploy terakhir:** 2026-09-30 — live pertama kali (`logs/2026-09-30_deploy-live.md`)
-- **Commit terakhir:** `a7bee63` — security fixes + hapus nomor WA
-- **Yang belum:** halaman admin order, upload gambar, harga asli, pembayaran
+- **Deploy terakhir:** 2026-09-30 — Fase 1 (halaman admin Order + fix kontras) live
+- **Commit terakhir:** Fase 1 — `admin-orders.html/js`, `tests/admin-orders.test.sh`
+- **Yang belum:** upload gambar produk, harga asli, editor konten, pelanggan, pembayaran
 
 ## 4. Risiko / blocker terbuka
 
 | # | Isu | Tingkat | Butuh |
 |---|---|---|---|
-| 1 | **Belum ada halaman admin order** — pesanan masuk tak bisa diproses | 🔴 tinggi | kerja (Fase 1) |
+| 1 | ~~Belum ada halaman admin order~~ ✅ selesai 2026-09-30 | — | — |
 | 2 | Harga masih placeholder (`825000 + gsm*1000`) | 🟠 sedang | daftar harga asli dari user |
-| 3 | Sidebar admin 2 link nyasar (`Orders`, `Content`) | 🟠 sedang | kerja (Fase 1) |
+| 3 | ~~Sidebar admin 2 link nyasar~~ ✅ selesai | — | — |
 | 4 | Nggak ada upload gambar — produk baru butuh URL manual | 🟠 sedang | kerja (Fase 2) |
 | 5 | Pembayaran masih manual (belum ada gateway) | 🟡 rendah | kerja (paling akhir) |
 | 6 | Repo **publik** + bisnis nyata — roadmap & backlog bisa dilihat orang | 🟡 rendah | keputusan user (sudah oke) |

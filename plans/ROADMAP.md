@@ -1,7 +1,7 @@
 # Roadmap — apa yang tersisa
 
 **Updated:** 2026-09-30
-**Status:** Live di https://txt.invesbot.my.id · Fase CMS belum mulai
+**Status:** Live di https://txt.invesbot.my.id · Fase 1 (admin Order) ✅ selesai · Fase 2 berikutnya
 
 > Satu sumber kebenaran untuk "apa yang belum dikerjakan". Setiap item menunjuk ke
 > detailnya. Jaga tetap akurat — roadmap basi itu menyesatkan.
@@ -19,6 +19,9 @@
 | Deploy live via Cloudflare Tunnel + systemd `atara-web` | `logs/2026-09-30_deploy-live.md` |
 | Akun admin (login terverifikasi via domain live) | `logs/2026-09-30_deploy-live.md` |
 | Adopsi framework (AGENTS.md, HANDOFF.md, plans/, docs/) | `plans/0001-adopt-framework.md` |
+| **Fase 1: halaman admin Order** (tabel, filter, drawer, ubah status, resi) | commit `fase1`, `tests/admin-orders.test.sh` 12/12 |
+| **Fix sidebar admin** (`Orders → /admin-orders.html`, `Content → /` dihapus) | commit `fase1` |
+| **Kontras `--rust` & `--muted`** (WCAG AA) | `docs/design-system.md` §4, terukur 5.12/4.59 & 5.55/4.97 |
 
 ---
 
@@ -28,9 +31,9 @@
 
 | # | Item | Effort | Kenapa penting | Trigger |
 |---|---|---|---|---|
-| 1 | **Halaman admin Order** (lihat/proses pesanan, resi, filter) | M | Order = uang masuk. Tanpa ini pesanan tak bisa diproses | **SEKARANG** |
-| 2 | Fix sidebar admin (`Orders → /checkout.html`, `Content → /`) | S | 2 link nyasar | bareng #1 |
-| 3 | **Upload gambar produk** (sekarang cuma tempel URL) | M | Nggak bisa tambah produk tanpa URL gambar | bareng #1 |
+| 1 | ~~Halaman admin Order~~ | M | ✅ **SELESAI** 2026-09-30 | — |
+| 2 | ~~Fix sidebar admin~~ | S | ✅ **SELESAI** (sekalian seragamkan menu) | — |
+| 3 | **Upload gambar produk** (sekarang cuma tempel URL) | M | Nggak bisa tambah produk tanpa URL gambar | **SEKARANG** |
 | 4 | **Harga asli** (sekarang placeholder `825000 + gsm*1000`) | S | Harga palsu terlihat pembeli | user siapkan daftar harga |
 
 ### P2 — setelah ada transaksi

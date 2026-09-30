@@ -68,6 +68,8 @@ npm run build
 
 # test
 bash tests/security.test.sh    # 10 cek: IDOR, admin takeover, mock-payment, XSS, headers
+bash tests/admin-orders.test.sh # 12 cek: halaman order, ubah status, resi, kontras
+# ⚠️ jalankan test di DB throwaway (bukan data/atandra.sqlite) — lihat pitfalls
 
 # health
 curl -s https://txt.invesbot.my.id/api/health
@@ -107,6 +109,14 @@ tail -f logs/service.log
 - **`NODE_ENV=production`** → mock-payment mati + cookie `Secure` + CSP aktif.
 - **Backend tidak bind-mounted** — ubah kode → `npm run build` → restart.
 - **`pkill -f "node server/index.js"` bunuh diri sendiri** (pattern ada di command line).
+- **Halaman baru WAJIB didaftarkan di `vite.config.ts`** — server serve `dist/`, jadi file di
+  root akan 404 tanpa `vite build` yang mendaftarkannya.
+- **Server tulis DB dari memory** — **stop service dulu** sebelum edit `data/atandra.sqlite`
+  langsung, kalau tidak perubahan ketimpa saat shutdown.
+- **`GET /api/orders/:id` balikin `{order, items}` terpisah** — bukan `order.items`.
+- **`reserved_stock` wajib dikembalikan** saat hapus order; kalau tidak, stok "bocor".
+- **Test destruktif wajib di DB throwaway** — symlink `dist`/`public`/`node_modules` ke
+  `/tmp/atara_test*`, `cp -r server`, lalu hapus setelah selesai.
 - **Data di git history tetap terbaca** meski dihapus di commit baru (`git show <sha>:<path>`).
 - **`logs/`, `data/`, `dist/`, `.env` di-ignore git** — jangan pernah commit paksa.
 - **`write_file` ke file bernama persis `AGENTS.md`/`CLAUDE.md` itu di-guard** — butuh

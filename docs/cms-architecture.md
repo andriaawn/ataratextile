@@ -18,14 +18,15 @@ sama. Yang beda cuma seberapa dalam masing-masing:
 |---|---|---|---|
 | 1 | **Dashboard** | Ringkasan: penjualan, order masuk, stok menipis | ✅ `GET /api/admin/dashboard` |
 | 2 | **Katalog** | Produk, varian, kategori, warna, gambar, harga bertingkat | ✅ 20 endpoint |
-| 3 | **Pesanan** | Daftar order, detail, ubah status, resi, catatan | ✅ endpoint ada, **UI belum** |
+| 3 | **Pesanan** | Daftar order, detail, ubah status, resi, catatan | ✅ endpoint + **UI selesai** (Fase 1) |
 | 4 | **Pelanggan** | Daftar pelanggan, riwayat, alamat | ⚠️ data ada, endpoint khusus belum |
 | 5 | **Konten** | Hero, banner, halaman statis, kontak | ❌ belum ada |
 | 6 | **Pengaturan** | Toko, pengiriman, pembayaran, pajak, user admin | ⚠️ sebagian di `.env` |
 | 7 | **Laporan** | Penjualan, produk terlaris, ekspor | ❌ belum ada |
 
-**Kesimpulan:** backend kita **sudah menutup modul 1–3** (yang paling penting). Yang
-kurang adalah **lapisan UI** untuk modul 3, lalu modul 4–7.
+**Kesimpulan:** backend kita **sudah menutup modul 1–3** (yang paling penting), dan
+**lapisan UI modul 3 (Pesanan) sudah selesai** di Fase 1. Berikutnya modul 2 (perbaikan
+Katalog) lalu 4–7.
 
 ---
 
@@ -33,7 +34,7 @@ kurang adalah **lapisan UI** untuk modul 3, lalu modul 4–7.
 
 ```
 ▸ Dashboard        /admin.html              ringkasan harian
-▸ Pesanan ①        /admin-orders.html       kerja utama sehari-hari   ← FASE 1
+▸ Pesanan ①        /admin-orders.html       kerja utama sehari-hari   ✅ FASE 1 SELESAI
 ▸ Produk           /admin-products.html     katalog (sudah ada, diperbaiki di FASE 2)
 ▸ Pelanggan        /admin-customers.html    FASE 4
 ▸ Konten           /admin-content.html      FASE 3
@@ -59,7 +60,7 @@ operator tahu "ada kerjaan" tanpa buka halaman.
 **Aturan KPI:** setiap angka **wajib ada pembandingnya** (vs periode sebelumnya). Angka
 telanjang tanpa konteks tidak menjawab pertanyaan apa pun.
 
-### 3.2 Pesanan (`admin-orders.html`) — 🔴 FASE 1, prioritas utama
+### 3.2 Pesanan (`admin-orders.html`) — ✅ FASE 1 SELESAI (2026-09-30)
 
 **Pertanyaan yang harus dijawab layar ini:** *"Pesanan mana yang perlu gw kerjakan
 sekarang?"*
