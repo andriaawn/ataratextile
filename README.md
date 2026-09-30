@@ -2,6 +2,21 @@
 
 Commerce foundation for Atandra Textile Supply, preserving the original landing page while adding a database-backed catalog, variants, inventory, cart, checkout, orders, samples, and an admin overview.
 
+**Live:** https://txt.invesbot.my.id
+
+## Project docs
+
+| File | Isi |
+|---|---|
+| [`AGENTS.md`](AGENTS.md) | Aturan kerja untuk agent AI — **baca ini dulu** |
+| [`HANDOFF.md`](HANDOFF.md) | Kondisi terkini, infrastruktur, pitfalls |
+| [`plans/ROADMAP.md`](plans/ROADMAP.md) | Apa yang sudah selesai & apa yang tersisa |
+| [`BACKLOG.md`](BACKLOG.md) | Ide yang ditunda + alasan + trigger |
+| [`docs/architecture.md`](docs/architecture.md) | Arsitektur, model data, alur order, keamanan |
+| [`docs/api.md`](docs/api.md) | Referensi 34 endpoint API |
+
+**Alur kerja:** plan → approve → implement → test → log → commit. Plan di [`plans/`](plans/), catatan kerja di `logs/` (lokal saja, tidak di-commit).
+
 ## Local development
 
 Install dependencies:
@@ -18,15 +33,23 @@ npm run api
 
 Optional admin seed on first API start:
 
-Copy `.env.example` to `.env`, then adjust the values. The API loads `.env` automatically.
+Copy `.env.example` to `.env`, then fill in real values. The API loads `.env` automatically.
 
-```powershell
-$env:ADMIN_EMAIL="admin@example.com"
-$env:ADMIN_PASSWORD="change-this-password"
-$env:ADMIN_INVITE_KEY="admin-registration-secret"
-$env:DEV_PAYMENT_KEY="local-only"
+```bash
+# .env  (mode 600 — never commit)
+PORT=8787
+NODE_ENV=development
+ALLOWED_ORIGINS=http://localhost:5173
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=<random, min 12 chars — openssl rand -base64 24>
+ADMIN_INVITE_KEY=<random, min 16 chars>
+DEV_PAYMENT_KEY=<random, min 12 chars>
+
 npm run api
 ```
+
+> ⚠️ **In production, a weak or common `ADMIN_PASSWORD` makes the server refuse to start
+> (fail-fast).** Never use the example values above for a real deployment.
 
 Run the Vite storefront in a second terminal:
 
