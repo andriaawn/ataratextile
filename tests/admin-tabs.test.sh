@@ -149,7 +149,14 @@ else
   # Penjaga regresi: input punya lebar intrinsik, jadi grid `1fr 1fr` membuat
   # halaman melebar di 360px. `minmax(0,1fr)` yang mencegahnya.
   case "$CSSB" in *'minmax(0,1fr)'*) ok "10d. CSS pakai minmax(0,1fr) (anti scroll horizontal 360px)";; *) bad "10d. CSS tidak pakai minmax(0,1fr) — halaman bisa melebar di 360px";; esac
-  case "$CSSB" in *'.variant-row{grid-template-columns:minmax'*) ok "10e. baris varian pakai minmax (tidak melebar)";; *) bad "10e. .variant-row tidak pakai minmax";; esac
+  # ⚠️ plan 0010: grid berkolom TETAP = BUG. DOM baris varian punya 6-7 anak
+  # (badge opsional), jadi kolom ke-5/6 membungkus dan sisanya diperas jadi 24px.
+  # Yang dijaga sekarang: baris varian memakai flex-wrap, BUKAN grid berkolom tetap.
+  case "$CSSB" in
+    *'.variant-row{grid-template-columns:minmax'*) bad "10e. baris varian kembali ke grid berkolom tetap (bug 24px — plan 0010)";;
+    *'.variant-row{display:flex;flex-wrap:wrap'*) ok "10e. baris varian flex-wrap (bukan grid berkolom tetap)";;
+    *) bad "10e. .variant-row bukan flex-wrap";;
+  esac
   case "$CSSB" in *'max-width:900px'*) ok "10f. ada breakpoint 900px";; *) bad "10f. tidak ada breakpoint untuk layar sempit";; esac
 fi
 

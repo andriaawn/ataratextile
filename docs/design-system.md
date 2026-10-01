@@ -313,5 +313,25 @@ Kalau nanti dibutuhkan, aturannya: pakai `prefers-color-scheme` + toggle manual,
       memaksa halaman melebar, walau anaknya sudah `overflow:auto`
 - [ ] **Uji lebar dengan halaman terisi**, bukan halaman login kosong — form login selalu
       "lolos" dan menyembunyikan bug tata letak tabel
+- [ ] **⚠️ Jangan pakai grid/flex berkolom TETAP kalau jumlah anak bisa berubah.** `.variant-row`
+      dulu `grid-template-columns: 5 kolom`, tapi DOM-nya 6–7 anak (badge "Menipis" opsional).
+      Anak terakhir membungkus, sisanya diperas sampai **24px** — di desktop pun checkbox
+      melebar 439px dan nama warna terpotong. Pakai **flex-wrap + `flex-basis` + `min-width`**:
+      kontrol **turun baris** saat ruang kurang, bukan diperas. Ini bug nyata (plan 0010)
+- [ ] **Form `flex` dengan `flex:1` (= `flex:1 1 0%`) menyusut sampai 0.** Beri basis nyata:
+      `flex:1 1 120px;min-width:120px`. Tanpa itu, form 5 kontrol jadi **29–55px** di HP/tablet
+- [ ] **Input `font-size:16px` di layar sentuh** — Safari iOS auto-zoom saat fokus input <16px.
+      Taruh di **breakpoint lebar** (≤640px) **dan** `@media (pointer:coarse)` — sebagian browser
+      HP melaporkan `pointer:fine`, dan `setDeviceMetricsOverride(mobile:true)` Chrome pun tidak
+      menyalakan `pointer:coarse`
+- [ ] **Target sentuh ≥44px** (WCAG 2.5.5; minimum mutlak 24px) untuk tombol, tab, chip, checkbox.
+      Perbesar **area tekan** (padding), bukan ukuran kotak checkbox
+- [ ] **⚠️ Spesifisitas:** aturan kelas spesifik (`.bulk-controls input{font-size:12px}`, 0,1,1)
+      MENANG atas aturan elemen (`input{font-size:16px}`, 0,0,1). Saat menaikkan font/target
+      kontrol, **tambahkan selector spesifiknya** (`.bulk-controls input`) atau taruh di akhir file
+- [ ] **Tiap input punya label terlihat**, bukan hanya `placeholder`/`aria-label` — di HP admin
+      tak bisa menebak mana harga/grosir/stok dari angka saja
+- [ ] **⚠️ Uji di >640px juga, bukan hanya 320–414.** Bug plan 0010 juga muncul di **768px**
+      (form diperas 55px) dan **desktop** — jangan asumsikan lebar besar aman
 - [ ] **Bahasa Indonesia** konsisten — judul tab, header tabel, tombol, eyebrow
 - [ ] Judul tab berpola `… — Admin Atandra`

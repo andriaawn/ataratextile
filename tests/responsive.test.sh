@@ -159,6 +159,26 @@ case "$CSSB" in
   *) bad "7b. modal bukan lebar adaptif";;
 esac
 
+# ---------- 8. Plan 0010: form & baris varian tidak boleh diperas ----------
+# Akar bug: grid/flex berkolom tetap → anak terakhir membungkus, sisanya diperas
+# jadi 24-55px. Yang dijaga: baris varian flex-wrap + input punya lantai lebar,
+# dan form punya basis 120px (turun baris, bukan diperas).
+case "$CSSB" in
+  *'.variant-row{display:flex;flex-wrap:wrap'*)
+    ok "8a. baris varian flex-wrap (0010)";;
+  *) bad "8a. baris varian masih grid berkolom tetap → diperas";;
+esac
+case "$CSSB" in
+  *'.variant-row>span:not(.badge){flex:1 1 150px;min-width:110px'*)
+    ok "8b. input varian punya lantai lebar (0010)";;
+  *) bad "8b. input varian tanpa lantai lebar → bisa 24px";;
+esac
+case "$CSSB" in
+  *'.inline-form input,.inline-form select{min-width:120px;flex:1 1 120px'*)
+    ok "8c. kontrol form punya lantai 120px (0010)";;
+  *) bad "8c. kontrol form bisa diperas (dulu 55px @768)";;
+esac
+
 echo
 echo "═══ 0007: $pass PASS / $fail FAIL ═══"
 [ "$fail" -eq 0 ]

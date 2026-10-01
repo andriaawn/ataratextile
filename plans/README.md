@@ -39,3 +39,4 @@ di framework, atau ikuti struktur plan yang sudah ada di folder ini:
 | 0007 | [Responsif halaman admin](0007-responsive-admin.md) | ✅ done 2026-10-01 (0px di 320–1440) |
 | 0008 | [Ganti password sendiri dari CMS](0008-ganti-password.md) | ✅ done 2026-10-01 (269/269, NC 9/2/8) |
 | 0009 | [Tutup panel admin sebelum login](0009-tutup-panel-admin.md) | ✅ done 2026-10-01 (275/275, NC 3/1) |
+| 0010 | [CMS nyaman dipakai di HP](0010-cms-mobile-nyaman.md) | ✅ done 2026-10-01 (296/296, NC 2/1/3) |
