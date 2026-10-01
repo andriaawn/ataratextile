@@ -77,7 +77,7 @@ Semua body request/response = JSON. Autentikasi pakai cookie `atandra_session`
 | DELETE | `/admin/colors/:id` | 🔒 | Hapus warna. **409 kalau masih dipakai** varian, 404 kalau tidak ada |
 | POST | `/admin/colors` | 🔒 | Body: `name, code` (code unik) |
 | GET | `/admin/products` | 🔒 | Semua produk (termasuk draft/archived) |
-| POST | `/admin/products` | 🔒 | Buat produk. Field wajib: `category_id, name, slug, sku, description, material, construction, gsm, width, weight_per_yard, recommended_usage` |
+| POST | `/admin/products` | 🔒 | Buat produk. Field wajib: `category_id, name, slug, sku, description, material, construction, gsm, width, weight_per_yard, recommended_usage`. Opsional: `moq` (default 1, min 1), `sample_available` (default 1), `featured` (default 0), `bestseller` (default 0), `status` (default draft), `image`. Field kurang → **400** dengan pesan menyebut nama field + array `missing` |
 | PATCH | `/admin/products/:id` | 🔒 | Ubah field produk |
 | DELETE | `/admin/products/:id` | 🔒 | **Soft delete** → `status='archived'` (riwayat tetap utuh) |
 | GET | `/admin/products/:id/variants` | 🔒 | Varian produk + stok + `low_stock_threshold` + **`low_stock`** (dihitung server) |

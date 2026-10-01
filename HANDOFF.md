@@ -49,9 +49,10 @@ log → commit**. Nol kode sebelum plan disetujui. Push butuh approval terpisah.
 - **Roadmap:** [`plans/ROADMAP.md`](plans/ROADMAP.md)
 - **Angka penting:** 11 produk · 44 varian · 1 kategori · 4 warna · **0 order** ·
   1 akun admin · **53 endpoint API**
-- **Deploy terakhir:** 2026-10-01 — CMS nyaman dipakai di HP (`plans/0010`) live
+- **Deploy terakhir:** 2026-10-01 — CMS siap terima produk (`plans/0012`) live
 - **Commit terakhir:** lihat `git log --oneline -5`
-- **Fase 2 SELESAI.** Yang belum: harga asli, editor konten, pelanggan, pembayaran
+- **Fase 2 SELESAI.** Form produk lengkap (0012). Yang belum: harga asli, sinkron
+  `payments.status`, ongkir satu rumus, sample request, editor konten, pelanggan, pembayaran
 - **⚠️ Gambar upload TIDAK di-commit** (`public/uploads/` di-`.gitignore`). Backup lewat
   `bash scripts/backup-uploads.sh` (simpan 7 terbaru). Tanpa ini, gambar hilang kalau
   server rusak.
@@ -66,6 +67,8 @@ log → commit**. Nol kode sebelum plan disetujui. Push butuh approval terpisah.
 | 4 | ~~Nggak ada upload gambar — produk baru butuh URL manual~~ ✅ selesai 2026-10-01 (Fase 2A) | — | — |
 | 5 | Pembayaran masih manual (belum ada gateway) | 🟡 rendah | kerja (paling akhir) |
 | 6 | Repo **publik** + bisnis nyata — roadmap & backlog bisa dilihat orang | 🟡 rendah | keputusan user (sudah oke) |
+| 7 | `payments.status` tidak disinkronkan saat order diubah → KPI dashboard salah (order `refunded` masih dihitung "menunggu bayar") | 🔴 tinggi | fix (plan 0011 temuan #1) |
+| 8 | Ongkir 2 rumus: `store.js` (+35.000 flat) vs `services.js` (Jakarta 18.000) → pelanggan lihat beda Rp 7.000 dari tagihan | 🔴 tinggi | fix (plan 0011 temuan #2) |
 
 ## 5. Di mana semuanya berada
 

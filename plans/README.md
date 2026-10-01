@@ -40,3 +40,5 @@ di framework, atau ikuti struktur plan yang sudah ada di folder ini:
 | 0008 | [Ganti password sendiri dari CMS](0008-ganti-password.md) | ✅ done 2026-10-01 (269/269, NC 9/2/8) |
 | 0009 | [Tutup panel admin sebelum login](0009-tutup-panel-admin.md) | ✅ done 2026-10-01 (275/275, NC 3/1) |
 | 0010 | [CMS nyaman dipakai di HP](0010-cms-mobile-nyaman.md) | ✅ done 2026-10-01 (296/296, NC 2/1/3) |
+| 0011 | [Audit CMS: apa yang masih kurang](0011-audit-cms.md) | 📋 laporan audit — 9 temuan, 1 blocker |
+| 0012 | [CMS siap terima produk](0012-cms-siap-terima-produk.md) | ✅ done 2026-10-01 (313/313, NC 11 + 2) |

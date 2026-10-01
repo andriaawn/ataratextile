@@ -1,7 +1,7 @@
 # Roadmap — apa yang tersisa
 
 **Updated:** 2026-10-01
-**Status:** Live di https://txt.invesbot.my.id · Fase 1 (admin Order) ✅ · URL bersih ✅ · UI/UX CMS ✅ · **Fase 2 SELESAI** (2A upload gambar ✅ · 2B bulk harga ✅ · 2C kategori & warna ✅ · 2D badge stok menipis ✅ · 2E halaman Produk jadi tab ✅) · **Responsif admin ✅ (plan 0007)** · **Ganti password sendiri ✅ (plan 0008)** · **Tutup panel admin sebelum login ✅ (plan 0009)** · **CMS nyaman di HP 🚧 (plan 0010)** · Fase 3 berikutnya
+**Status:** Live di https://txt.invesbot.my.id · Fase 1 (admin Order) ✅ · URL bersih ✅ · UI/UX CMS ✅ · **Fase 2 SELESAI** (2A upload gambar ✅ · 2B bulk harga ✅ · 2C kategori & warna ✅ · 2D badge stok menipis ✅ · 2E halaman Produk jadi tab ✅) · **Responsif admin ✅ (0007)** · **Ganti password sendiri ✅ (0008)** · **Tutup panel admin sebelum login ✅ (0009)** · **CMS nyaman di HP ✅ (0010)** · **CMS siap terima produk ✅ (0012)** · Fase 3 berikutnya
 
 > Satu sumber kebenaran untuk "apa yang belum dikerjakan". Setiap item menunjuk ke
 > detailnya. Jaga tetap akurat — roadmap basi itu menyesatkan.
@@ -35,18 +35,24 @@
 |---|---|---|---|---|
 | 1 | ~~Halaman admin Order~~ | M | ✅ **SELESAI** 2026-09-30 | — |
 | 2 | ~~Fix sidebar admin~~ | S | ✅ **SELESAI** (sekalian seragamkan menu) | — |
-| 3 | **Upload gambar produk** (sekarang cuma tempel URL) | M | Nggak bisa tambah produk tanpa URL gambar | **SEKARANG** |
-| 4 | **Harga asli** (sekarang placeholder `825000 + gsm*1000`) | S | Harga palsu terlihat pembeli | user siapkan daftar harga |
+| 3 | ~~Upload gambar produk~~ | M | ✅ **SELESAI** (2A) | — |
+| 3b | ~~Form "Buat produk" selalu gagal 400~~ | XS | ✅ **SELESAI** (0012) — `recommended_usage` hilang dari form | — |
+| 3c | ~~5 field produk tak bisa diisi (moq/featured/sample/bestseller)~~ | S | ✅ **SELESAI** (0012) | — |
+| 4 | **Harga asli** (sekarang placeholder `825000 + gsm*1000`) | S | Harga palsu terlihat pembeli | **user siapkan daftar harga** |
+| 5 | **Sinkronkan `payments.status`** + betulkan KPI dashboard | S | Order `refunded` masih dihitung "menunggu bayar" (temuan 0011, ada bukti) | **SEKARANG** |
+| 6 | **Ongkir satu rumus** (checkout pakai `/api/shipping/quote`) | S | Pelanggan lihat +35.000, ditagih +28.000 (beda Rp 7.000) | **SEKARANG** |
 
 ### P2 — setelah ada transaksi
 
 | # | Item | Effort | Kenapa penting | Trigger |
 |---|---|---|---|---|
-| 5 | Kelola kategori & warna (sekarang 1 kategori, 4 warna) | S | Katalog nggak bisa tumbuh | >1 kategori dibutuhkan |
-| 6 | Editor konten (hero, banner, **kontak + WA**) | M | Ganti teks harus edit kode | user mau ubah tampilan |
-| 7 | Halaman kelola customer | S | Lihat pelanggan & riwayat | >10 pelanggan |
-| 8 | Export order CSV (pembukuan) | S | Rekap manual melelahkan | saat pembukuan bulanan |
-| 9 | **Pembayaran** (Midtrans/Xendit) | L | Uang masuk otomatis | setelah alur order matang |
+| 7 | ~~Kelola kategori & warna~~ | S | ✅ **SELESAI** (2C) | — |
+| 8 | **Sambungkan sample request** (form storefront + halaman admin) | M | Endpoint sudah hidup tapi nol pemanggil (temuan 0011) | user mau fitur sample |
+| 9 | Editor konten (hero, banner, **kontak + WA**) | M | Ganti teks harus edit kode | user mau ubah tampilan |
+| 10 | **Beranda dinamis** (sekarang 11 kartu hardcode, nol API) | M | `featured`/`bestseller` tak terlihat di beranda | Fase 3 |
+| 11 | Halaman kelola customer | S | Lihat pelanggan & riwayat | >10 pelanggan |
+| 12 | Export order CSV (pembukuan) | S | Rekap manual melelahkan | saat pembukuan bulanan |
+| 13 | **Pembayaran** (Midtrans/Xendit) | L | Uang masuk otomatis | setelah alur order matang |
 
 ### P3 — utang teknis
 
@@ -69,7 +75,7 @@ Lihat [`BACKLOG.md`](../BACKLOG.md) — setiap item ada alasan + trigger.
 
 | Item | Alasan |
 |---|---|
-| Pindah ke WordPress/WooCommerce | Backend sudah punya 34 endpoint; migrasi = buang kerja + risiko keamanan baru |
+| Pindah ke WordPress/WooCommerce | Backend sudah punya 53 endpoint; migrasi = buang kerja + risiko keamanan baru |
 | Pindah ke Shopify/Medusa/Saleor | Bayar bulanan / berat / overkill untuk 1 toko |
 | Ganti ke headless CMS (Strapi/Directus) | Harus ganti backend & DB; UI admin bisa dibangun di atas backend yang ada |
 | Ganti framework ke Spec Kit / BMAD | Overhead 9×–berat; proyek ini brownfield, 1 developer. Lihat `plans/0001` |

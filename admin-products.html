@@ -80,7 +80,12 @@
               <div class="field"><label>Status</label><select name="status"><option value="draft">Draf</option><option value="active">Aktif</option></select></div>
               <div class="field full"><label>Material</label><input name="material" required></div>
               <div class="field full"><label>Construction</label><input name="construction" required></div>
-              <div class="field full"><label>Deskripsi / penggunaan</label><textarea name="description" rows="3" required></textarea></div>
+              <div class="field full"><label>Deskripsi</label><textarea name="description" rows="3" required></textarea></div>
+              <div class="field full"><label>Rekomendasi pemakaian</label><input name="recommended_usage" placeholder="mis. Kaos polos, seragam, kemeja" required></div>
+              <div class="field"><label>Minimum order (roll)</label><input name="moq" type="number" min="1" value="1"></div>
+              <div class="field"><label>Bisa minta sample</label><select name="sample_available"><option value="1">Bisa</option><option value="0">Tidak</option></select></div>
+              <div class="field"><label>Produk unggulan</label><select name="featured"><option value="0">Tidak</option><option value="1">Ya</option></select></div>
+              <div class="field"><label>Terlaris</label><select name="bestseller"><option value="0">Tidak</option><option value="1">Ya</option></select></div>
               <div class="field full">
                 <label for="image-input">Gambar produk</label>
                 <input id="image-input" type="file" accept="image/jpeg,image/png,image/webp">

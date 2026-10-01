@@ -331,6 +331,19 @@ Kalau nanti dibutuhkan, aturannya: pakai `prefers-color-scheme` + toggle manual,
       kontrol, **tambahkan selector spesifiknya** (`.bulk-controls input`) atau taruh di akhir file
 - [ ] **Tiap input punya label terlihat**, bukan hanya `placeholder`/`aria-label` — di HP admin
       tak bisa menebak mana harga/grosir/stok dari angka saja
+- [ ] **⚠️ Field wajib API harus ADA di form.** Form CMS dulu punya 10 field sementara
+      `POST /api/admin/products` mewajibkan 11 (`recommended_usage` hilang) → tombol
+      "Buat produk" **selalu 400**. Semua test lama memanggil API **langsung** dan selalu
+      mengirim field itu, jadi tak ada yang memeriksa **form-nya**. Setiap field wajib di
+      endpoint harus punya pasangan di form; uji dengan membandingkan keduanya (plan 0012)
+- [ ] **⚠️ `event.currentTarget` jadi `null` setelah `await`.** Handler `submit` yang
+      memanggil `event.currentTarget.reset()` **setelah** `await api(...)` akan error
+      `Cannot read properties of null` — dan itu **setelah** request sukses, jadi admin
+      melihat pesan gagal padahal datanya tersimpan. Tangkap dulu: `const form = event.currentTarget;`
+      di baris pertama handler, baru pakai `form.reset()` (plan 0012)
+- [ ] **⚠️ Flag boolean dari form = string.** `<select>` mengirim `"0"`, dan `"0"` itu
+      **truthy** di JS → `featured ? 1 : 0` mengubah "Tidak" jadi `1`. Wajib normalkan
+      (`flagValue()`) di server, jangan percaya truthiness string
 - [ ] **⚠️ Uji di >640px juga, bukan hanya 320–414.** Bug plan 0010 juga muncul di **768px**
       (form diperas 55px) dan **desktop** — jangan asumsikan lebar besar aman
 - [ ] **Bahasa Indonesia** konsisten — judul tab, header tabel, tombol, eyebrow
