@@ -68,7 +68,7 @@ npm run build
 
 # test
 bash tests/security.test.sh    # 10 cek: IDOR, admin takeover, mock-payment, XSS, headers
-bash tests/admin-orders.test.sh # 12 cek: halaman order, ubah status, resi, kontras
+bash tests/admin-orders.test.sh # 16 cek: URL bersih, halaman order, ubah status, resi, kontras
 # ⚠️ jalankan test di DB throwaway (bukan data/atandra.sqlite) — lihat pitfalls
 
 # health
@@ -109,8 +109,12 @@ tail -f logs/service.log
 - **`NODE_ENV=production`** → mock-payment mati + cookie `Secure` + CSP aktif.
 - **Backend tidak bind-mounted** — ubah kode → `npm run build` → restart.
 - **`pkill -f "node server/index.js"` bunuh diri sendiri** (pattern ada di command line).
-- **Halaman baru WAJIB didaftarkan di `vite.config.ts`** — server serve `dist/`, jadi file di
-  root akan 404 tanpa `vite build` yang mendaftarkannya.
+- **Halaman baru WAJIB didaftarkan di 3 tempat** — `PAGES` di `server/index.js`, `PAGES` di
+  `vite.config.ts` (dev), dan `build.rollupOptions.input` (build). Server serve `dist/`,
+  jadi file di root akan 404 tanpa `vite build` yang mendaftarkannya.
+- **URL publik bersih (tanpa `.html`)** — `/admin/pesanan`, `/katalog`, `/produk?slug=…`.
+  URL lama `.html` di-301 otomatis. **Jangan menulis link `.html` di kode baru.**
+  Lihat `docs/architecture.md` §2b dan `plans/0004-clean-urls.md`.
 - **Server tulis DB dari memory** — **stop service dulu** sebelum edit `data/atandra.sqlite`
   langsung, kalau tidak perubahan ketimpa saat shutdown.
 - **`GET /api/orders/:id` balikin `{order, items}` terpisah** — bukan `order.items`.
@@ -128,9 +132,9 @@ tail -f logs/service.log
 AGENTS.md          file ini — aturan kerja
 HANDOFF.md         kondisi terkini (baca setelah file ini)
 BACKLOG.md         ide ditunda + alasan + trigger
-plans/             rencana sebelum kerja (ROADMAP.md, 0001-*, 0002-*)
+plans/             rencana sebelum kerja (ROADMAP.md, 0001-0004)
 logs/              catatan kerja setelah selesai (TIDAK di-commit)
-docs/              arsitektur + referensi API
+docs/              arsitektur + referensi API (architecture.md, api.md, cms-architecture.md, design-system.md)
 server/            backend Express (index.js, auth.js, db.js, schema.sql, services.js)
 public/            aset statis (gambar)
 tests/             test keamanan
