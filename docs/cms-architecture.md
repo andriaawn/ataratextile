@@ -85,20 +85,26 @@ sekarang?"*
 - **Filter + search wajib.** Tanpa ini, 100 order mustahil dikelola.
 - **Empty state jelas.** "Belum ada pesanan."
 
-### 3.3 Produk (`/admin/produk`) — ⚠️ ada, diperbaiki di FASE 2
+### 3.3 Produk (`/admin/produk`) — ✅ FASE 2 SELESAI (2026-10-01)
 
 Sudah punya: daftar produk, form produk, editor varian, editor harga bertingkat, stok.
 
-Yang perlu ditambah:
+Yang ditambahkan di Fase 2:
 
-| # | Tambahan | Kenapa |
-|---|---|---|
-| 1 | **Upload gambar** (sekarang tempel URL) | Tanpa ini, nambah produk = cari URL manual |
-| 2 | **Bulk harga** — set harga semua varian sekaligus | 44 varian satu-satu = neraka |
-| 3 | **Badge stok menipis** di tabel | Lihat masalah tanpa buka tiap produk |
-| 4 | **Kelola kategori & warna** (sekarang 1 kategori, 4 warna) | Katalog tak bisa tumbuh |
-| 5 | Modal konfirmasi archive | Cegah salah klik |
-| 6 | Duplikat produk | Bikin varian dari yang mirip |
+| # | Tambahan | Kenapa | Status |
+|---|---|---|---|
+| 1 | **Upload gambar** (dulu tempel URL) | Tanpa ini, nambah produk = cari URL manual | ✅ 2A |
+| 2 | **Bulk harga** — set harga semua varian sekaligus | 44 varian satu-satu = neraka | ✅ 2B |
+| 3 | **Kelola kategori & warna** | Katalog tak bisa tumbuh | ✅ 2C |
+| 4 | **Badge stok menipis** di tabel | Lihat masalah tanpa buka tiap produk | ✅ 2D |
+| 5 | **Halaman dirapikan jadi tab** | Form + varian + galeri + katalog menumpuk jadi satu gulungan panjang | ✅ 2E |
+| 6 | Modal konfirmasi archive | Cegah salah klik | ⬜ belum |
+| 7 | Duplikat produk | Bikin varian dari yang mirip | ⬜ belum |
+
+**Halaman Produk sekarang 3 tab:** **Produk** (daftar + form) · **Varian & stok** (per produk,
+termasuk bulk harga) · **Kategori & warna**. Panel tetap di HTML — cuma disembunyikan — jadi
+ketikan yang belum disimpan tidak hilang saat pindah tab. Klik "Varian" di baris produk
+langsung memindahkan ke tab Varian.
 
 **Prinsip:** harga & stok di **varian**, bukan produk. Archive, jangan hapus.
 

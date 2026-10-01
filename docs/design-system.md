@@ -299,5 +299,9 @@ Kalau nanti dibutuhkan, aturannya: pakai `prefers-color-scheme` + toggle manual,
 - [ ] Bisa dipakai di **layar 360px** (nol scroll horizontal)
 - [ ] Angka uang/kuantitas pakai `tabular-nums`
 - [ ] Badge status selalu ada teks, bukan cuma warna
+- [ ] Kalau panel dipisah jadi **tab**: panel tetap ada di HTML (cuma `hidden`), tab bisa
+      dijangkau keyboard, dan `.panel[hidden]{display:none}` ada setelah aturan grid
+- [ ] Kalau ada grid kolom (`1fr 1fr`): pakai **`minmax(0,1fr)`**, jangan `1fr` — input punya
+      lebar intrinsik dan akan memaksa halaman melebar di 360px
 - [ ] **Bahasa Indonesia** konsisten — judul tab, header tabel, tombol, eyebrow
 - [ ] Judul tab berpola `… — Admin Atandra`

@@ -1,6 +1,6 @@
 # 0006 — Fase 2: Product CMS
 
-Status: 🚧 2A ✅ · 2B ✅ · 2C ✅ · **2D ✅ SELESAI & LIVE** · 2E belum
+Status: ✅ **FASE 2 SELESAI** — 2A ✅ · 2B ✅ · 2C ✅ · 2D ✅ · **2E ✅ SELESAI & LIVE**
 Tanggal: 2026-10-01
 Turunan dari: [`0002-cms-roadmap.md`](0002-cms-roadmap.md) — bagian "FASE 2 — Product CMS"
 Dokumen pendukung: [`docs/cms-architecture.md`](../docs/cms-architecture.md),
@@ -16,7 +16,26 @@ Dokumen pendukung: [`docs/cms-architecture.md`](../docs/cms-architecture.md),
 | **2B — Bulk edit harga** | ✅ **SELESAI & LIVE** | `tests/bulk-price.test.sh` **36/36** · negative control GAGAL 7 |
 | **2C — Kelola kategori & warna** | ✅ **SELESAI & LIVE** | `tests/catalog.test.sh` **37/37** · negative control GAGAL 10 |
 | **2D — Badge stok menipis** | ✅ **SELESAI & LIVE** | `tests/low-stock.test.sh` **28/28** · negative control GAGAL 8 |
-| 2E — Rapikan halaman Produk | ⬜ belum | — |
+| **2E — Rapikan halaman Produk** | ✅ **SELESAI & LIVE** | `tests/admin-tabs.test.sh` **38/38** · negative control GAGAL 7 |
+
+**2E yang terpasang:**
+- Halaman Produk dipisah jadi **3 tab**: **Produk** · **Varian & stok** · **Kategori & warna**.
+  Dulu semuanya satu gulungan panjang; begitu varian ditambah, form produk dan daftar
+  kategori jadi jauh dari pandangan.
+- **Panel tetap ada di HTML** (bukan dibuat ulang saat pindah tab) → teks yang sedang
+  diketik tidak hilang, dan tidak ada kedip.
+- Tab kedua & ketiga punya **`hidden` di HTML statis** (aturan lama: panel yang bergantung
+  aksi jangan disembunyikan JS) supaya tidak berkedip saat halaman dimuat.
+- **Klik "Varian" di baris produk otomatis pindah ke tab Varian** — admin tidak perlu
+  mencari tabnya sendiri.
+- `#products-message` ditaruh **di luar panel** supaya pesan sukses/gagal tetap terlihat
+  dari tab mana pun.
+- Aksesibilitas: `role="tablist"` / `role="tab"` / `role="tabpanel"` + `aria-selected` +
+  `aria-controls` + `aria-labelledby`, dan tab bisa dijangkau dengan Tab lalu Enter.
+- **Perbaikan 360px (temuan, bukan bagian rencana awal):** input punya lebar intrinsik,
+  jadi grid `1fr 1fr` memaksa halaman melebar → scroll horizontal 82px di 360px.
+  Diperbaiki dengan `minmax(0,1fr)` + `min-width:0`, dan baris varian ikut ditumpuk.
+  **Sebelum:** overflow 82px. **Sesudah:** 0px di 360/390/414/768/1024/1280.
 
 **2D yang terpasang:**
 - `productSelect` + `serializeProduct` — ikut ambil `MIN(inv.low_stock_threshold)` dan hitung
@@ -188,8 +207,8 @@ Setiap bagian = **satu commit yang bisa direview**, dengan test + bukti sendiri.
 | `product.html` | ✅ | | | | |
 | `store.css` | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `vite.config.ts` | | | | | (kalau ada halaman baru) |
-| `tests/*.test.sh` | ✅ | ✅ | ✅ | | |
-| `docs/api.md`, `docs/cms-architecture.md` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `tests/*.test.sh` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `docs/api.md`, `docs/cms-architecture.md` | ✅ | ✅ | ✅ | ✅ | (2E: `docs/design-system.md` — nol endpoint baru) |
 
 ---
 
@@ -230,9 +249,15 @@ Setiap bagian = **satu commit yang bisa direview**, dengan test + bukti sendiri.
 - [x] Negative control GAGAL 8 cek
 - [x] Test idempoten (182/182 dua kali berturut-turut)
 
-**2E (belum):**
-- [ ] Halaman Produk dirapikan jadi tab/section
-- [ ] Nol error console di browser; bisa dipakai di 360px
+**2E (selesai):**
+- [x] Halaman Produk dirapikan jadi **3 tab**: Produk · Varian & stok · Kategori & warna (38/38)
+- [x] Panel tetap di HTML → ketikan yang belum disimpan **tidak hilang** saat pindah tab
+- [x] Klik "Varian" di baris produk **otomatis pindah tab** (tidak perlu cari tabnya)
+- [x] Tab bisa dijangkau keyboard (Tab + Enter), `role=tablist/tab/tabpanel` + `aria-selected`
+- [x] **Nol error console**; nol scroll horizontal di 360/390/414/768/1024/1280
+- [x] Negative control GAGAL 7 cek (tanpa `minmax(0,1fr)`: halaman melebar 82px di 360px)
+- [x] Test idempoten (220/220 dua kali berturut-turut)
+- [x] DB produksi tidak tersentuh (11 produk · 44 varian · 0 order)
 
 ---
 
@@ -304,6 +329,29 @@ Setiap bagian = **satu commit yang bisa direview**, dengan test + bukti sendiri.
 19. **Kalau `node --check` bilang sintaks rusak, cari dulu apakah itu regresi kita** — bandingkan
     `git show HEAD:file` vs working dengan tokenizer sederhana (kurung/literal/komentar
     seimbang). Di sini pengeceknya menemukan kurung yang "masih terbuka" di baris yang tepat.
+
+---
+
+## Pelajaran dari 2E (jangan diulang)
+
+20. **Grid `1fr 1fr` MELEBAR kalau isinya input.** Input punya lebar intrinsik (~20 karakter);
+    `1fr` = `minmax(auto, 1fr)`, dan `auto` tidak mau menyusut di bawah lebar intrinsik →
+    kolom memaksa halaman melebar (di sini **82px di layar 360px**). Pakai
+    **`minmax(0, 1fr)`**, dan untuk baris grid yang lebih rumit tambahkan `min-width: 0`
+    pada anaknya. Ini jenis bug yang tidak kelihatan di desktop dan baru muncul di HP.
+21. **Uji lebar layar dengan emulasi CDP, bukan `window.resizeTo`.** `resizeTo` diabaikan
+    browser (viewport tetap 1280) → kesimpulan "aman" palsu. `Emulation.setDeviceMetricsOverride`
+    baru berlaku setelah beberapa ratus milidetik — **tunggu sampai `innerWidth` benar-benar
+    berubah**, jangan asumsi. Tanpa itu, pengukuran pertama selalu bohong.
+22. **Cek dulu apakah bug itu regresi kita.** Sebelum memperbaiki overflow 360px, `git show
+    HEAD:admin-products.html` dibandingkan: `.table-wrap` sudah ada di dalam grid `.admin-stack`
+    sejak sebelum 2E. Tahu itu bukan regresi mengubah keputusan (tetap diperbaiki, tapi tidak
+    menyalahkan perubahan sendiri).
+23. **Panel tab jangan dibuat ulang saat pindah.** Cukup `hidden` + `display:none`. Kalau panel
+    dibangun ulang, teks yang sedang diketik hilang dan halaman berkedip.
+24. **`hidden` di HTML statis + `display:grid` di CSS saling membatalkan.** Aturan
+    `.admin-panel[hidden]{display:none}` **wajib ada** setelah aturan grid, kalau tidak panel
+    yang seharusnya sembunyi tetap tampil. (Ini juga yang diuji negative control 10a.)
 
 ---
 

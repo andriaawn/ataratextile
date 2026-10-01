@@ -164,3 +164,42 @@
 .badge--out_of_stock{background:var(--danger)}
 /* Stok menipis (plan 0006, fase 2D) — teks putih 5.90:1, lolos WCAG AA */
 .badge--low-stock{background:var(--status-low-stock)}
+/* ===== Halaman Produk jadi tab (plan 0006, fase 2E) ===== */
+/* Tiga bagian (Produk · Varian & stok · Kategori & warna) supaya halaman tidak
+   jadi gulungan panjang begitu varian ditambah. Semua elemen tetap ada di HTML;
+   tab hanya menyembunyikan, jadi tidak ada yang dirender ulang saat berpindah. */
+.admin-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.admin-tab{border:1px solid transparent;border-bottom:0;background:none;padding:11px 16px;cursor:pointer;font:500 12px 'DM Mono';letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.admin-tab:hover{color:var(--ink)}
+.admin-tab.is-active{background:var(--paper);border-color:var(--line);color:var(--ink);font-weight:700;margin-bottom:-1px}
+.admin-panel{display:grid;gap:20px;align-content:start}
+/* WAJIB: .admin-panel menang atas [hidden] bawaan browser, jadi sembunyikan eksplisit. */
+.admin-panel[hidden]{display:none}
+/* Grid/flex item tidak menyusut di bawah lebar isinya kecuali min-width:0.
+   Tanpa ini, tabel produk (6 kolom) memaksa seluruh halaman melebar di layar
+   sempit dan memunculkan scroll horizontal. `.table-wrap` punya overflow:auto,
+   tapi itu tidak menolong selama kolom grid-nya sendiri masih bisa melebar. */
+.admin-panel{min-width:0}
+.admin-panel>.form-panel,.admin-panel>.table-wrap{min-width:0}
+.admin-stack>*{min-width:0}
+/* Input punya lebar intrinsik (~20 karakter). Di dalam grid `1fr 1fr` itu jadi
+   MINIMUM kolom, sehingga grid tidak bisa menyusut dan halaman melebar di 360px.
+   `minmax(0,1fr)` + `min-width:0` melepas batas itu; input tetap diisi 100%. */
+.field-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.field{min-width:0}
+.field input,.field textarea{width:100%;min-width:0}
+/* Baris varian: 5 kolom (label + 3 input + tombol). Di layar sempit ditumpuk. */
+.variant-row{grid-template-columns:minmax(0,1fr) repeat(3,minmax(0,80px)) auto}
+.variant-row input{width:100%;min-width:0}
+.admin-tools{grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr)}
+.catalog-lists{grid-template-columns:repeat(2,minmax(0,1fr))}
+.bulk-controls{flex-wrap:wrap}
+@media (max-width:900px){
+  .admin-tools,.catalog-lists{grid-template-columns:minmax(0,1fr)}
+  .field-grid{grid-template-columns:minmax(0,1fr)}
+  .variant-row{grid-template-columns:minmax(0,1fr) repeat(3,minmax(0,1fr)) auto}
+  .form-panel{padding:20px}
+}
+/* Di layar sempit, dua kolom jadi satu supaya tiap kontrol tetap terbaca. */
+@media (max-width:760px){.admin-tools{grid-template-columns:1fr}}
+#variant-empty .empty-state{background:white;border:1px solid var(--line)}

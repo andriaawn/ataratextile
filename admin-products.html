@@ -42,21 +42,29 @@
       <p id="products-auth-message" class="notice" hidden></p>
     </div>
 
-    <!-- Workspace -->
+    <!-- Workspace — dipisah jadi 3 tab supaya tidak jadi satu halaman panjang -->
     <div id="products-workspace" class="admin-stack" hidden>
 
       <div class="page-head">
         <div>
           <div class="eyebrow">Operasional</div>
           <h1>Produk</h1>
-          <p>Tambah produk baru, atur kategori &amp; warna, lalu kelola varian dan stok per warna.</p>
+          <p>Kelola katalog dalam tiga bagian: daftar produk, varian &amp; stok per warna, lalu struktur kategori &amp; warna.</p>
         </div>
         <button class="btn" id="products-refresh">Muat ulang</button>
       </div>
 
+      <!-- Pesan ditaruh DI LUAR panel supaya tetap terlihat dari tab mana pun -->
       <p id="products-message" class="notice" hidden></p>
 
-      <div class="admin-tools">
+      <div class="admin-tabs" role="tablist" aria-label="Bagian halaman Produk">
+        <button class="admin-tab is-active" type="button" role="tab" id="tab-produk" aria-controls="panel-produk" aria-selected="true" data-tab="produk">Produk</button>
+        <button class="admin-tab" type="button" role="tab" id="tab-varian" aria-controls="panel-varian" aria-selected="false" data-tab="varian">Varian &amp; stok</button>
+        <button class="admin-tab" type="button" role="tab" id="tab-katalog" aria-controls="panel-katalog" aria-selected="false" data-tab="katalog">Kategori &amp; warna</button>
+      </div>
+
+      <!-- ── Tab 1: Produk ───────────────────────────────────────────── -->
+      <section id="panel-produk" class="admin-panel" role="tabpanel" aria-labelledby="tab-produk" data-panel="produk">
         <div class="form-panel">
           <div class="eyebrow">Produk baru</div>
           <h2>Buat produk</h2>
@@ -90,19 +98,118 @@
             <button class="btn btn--primary">Simpan produk</button>
           </form>
         </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Produk</th>
+                <th>SKU</th>
+                <th>Status</th>
+                <th class="num">GSM</th>
+                <th class="num">Stok</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="product-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── Tab 2: Varian & stok ────────────────────────────────────── -->
+      <section id="panel-varian" class="admin-panel" role="tabpanel" aria-labelledby="tab-varian" data-panel="varian" hidden>
+        <div class="form-panel" id="variant-empty">
+          <div class="empty-state"><b>Belum ada produk dipilih</b>Buka tab <b>Produk</b>, lalu klik <b>Varian</b> pada baris produk untuk mengatur harga dan stok per warna.</div>
+        </div>
+
+        <div id="variant-panel" class="form-panel variant-panel" hidden>
+          <div class="eyebrow">Varian &amp; stok</div>
+          <h2 id="variant-title">Varian</h2>
+          <form id="variant-form" class="inline-form">
+            <select name="color_id" id="color-select" required></select>
+            <input name="sku" placeholder="SKU varian" required>
+            <input name="price" type="number" placeholder="Harga" required>
+            <input name="wholesale_price" type="number" placeholder="Harga grosir" required>
+            <input name="stock" type="number" placeholder="Stok" required>
+            <button class="btn btn--primary">Tambah varian</button>
+          </form>
+          <div id="variant-rows"></div>
+
+          <!-- Ubah harga banyak varian sekaligus. Preview WAJIB: salah ketik di sini
+               mengubah 44 harga, jadi admin harus lihat dulu sebelum simpan. -->
+          <div class="bulk-panel">
+            <div class="eyebrow">Ubah harga massal</div>
+            <div class="bulk-controls">
+              <label class="bulk-check"><input type="checkbox" id="bulk-all" checked> Pilih semua varian</label>
+              <select id="bulk-field">
+                <option value="price">Harga retail</option>
+                <option value="wholesale_price">Harga grosir</option>
+                <option value="both">Keduanya</option>
+              </select>
+              <select id="bulk-mode">
+                <option value="percent">Ubah persen (%)</option>
+                <option value="amount">Ubah nominal (Rp)</option>
+                <option value="set">Set harga baru (Rp)</option>
+              </select>
+              <input id="bulk-value" type="number" step="any" placeholder="mis. 5 atau -5" aria-label="Nilai perubahan">
+              <button class="btn" id="bulk-preview" type="button">Lihat pratinjau</button>
+            </div>
+            <div id="bulk-preview-box" hidden>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Varian</th><th class="num">Sebelum</th><th class="num">Sesudah</th><th class="num">Selisih</th></tr></thead>
+                  <tbody id="bulk-preview-rows"></tbody>
+                </table>
+              </div>
+              <div class="bulk-confirm">
+                <b id="bulk-summary"></b>
+                <button class="btn btn--primary" id="bulk-apply" type="button">Terapkan</button>
+                <button class="btn" id="bulk-cancel" type="button">Batal</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="eyebrow" style="margin-top:24px">Harga bertingkat</div>
+          <form id="pricing-form" class="inline-form">
+            <input name="min_quantity" type="number" placeholder="Mulai qty" required>
+            <input name="max_quantity" type="number" placeholder="Sampai qty">
+            <input name="price" type="number" placeholder="Harga bertingkat" required>
+            <button class="btn btn--primary">Simpan harga bertingkat</button>
+          </form>
+
+          <!-- Galeri gambar produk ini -->
+          <div class="eyebrow" style="margin-top:28px">Galeri gambar</div>
+          <h3>Gambar produk</h3>
+          <p class="sub">Gambar pertama dipakai sebagai gambar utama di katalog.</p>
+          <div id="gallery-grid" class="gallery-grid"></div>
+          <div id="gallery-drop" class="drop-zone">Tarik gambar ke sini, atau <button type="button" class="btn" id="gallery-pick">pilih file</button></div>
+          <input id="gallery-input" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+        </div>
+      </section>
+
+      <!-- ── Tab 3: Kategori & warna ─────────────────────────────────── -->
+      <section id="panel-katalog" class="admin-panel" role="tabpanel" aria-labelledby="tab-katalog" data-panel="katalog" hidden>
         <div class="form-panel">
           <div class="eyebrow">Struktur katalog</div>
           <h2>Kategori &amp; warna</h2>
-          <form id="category-form" class="inline-form">
-            <input name="name" placeholder="Nama kategori" required>
-            <input name="slug" placeholder="slug" required>
-            <button class="btn btn--primary">Tambah kategori</button>
-          </form>
-          <form id="color-form" class="inline-form">
-            <input name="name" placeholder="Nama warna" required>
-            <input name="code" placeholder="CLR-05" required>
-            <button class="btn btn--primary">Tambah warna</button>
-          </form>
+          <div class="admin-tools">
+            <div>
+              <div class="eyebrow">Tambah kategori</div>
+              <form id="category-form" class="inline-form">
+                <input name="name" placeholder="Nama kategori" required>
+                <input name="slug" placeholder="slug" required>
+                <button class="btn btn--primary">Tambah kategori</button>
+              </form>
+            </div>
+            <div>
+              <div class="eyebrow">Tambah warna</div>
+              <form id="color-form" class="inline-form">
+                <input name="name" placeholder="Nama warna" required>
+                <input name="code" placeholder="CLR-05" required>
+                <button class="btn btn--primary">Tambah warna</button>
+              </form>
+            </div>
+          </div>
 
           <!-- Daftar + jumlah pemakai. Tombol hapus WAJIB kelihatan berapa yang
                memakai, supaya admin tahu kenapa ditolak (409) sebelum klik. -->
@@ -117,85 +224,7 @@
             </div>
           </div>
         </div>
-      </div>
-
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Produk</th>
-              <th>SKU</th>
-              <th>Status</th>
-              <th class="num">GSM</th>
-              <th class="num">Stok</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="product-rows"></tbody>
-        </table>
-      </div>
-
-      <div id="variant-panel" class="form-panel variant-panel" hidden>
-        <div class="eyebrow">Varian &amp; stok</div>
-        <h2 id="variant-title">Varian</h2>
-        <form id="variant-form" class="inline-form">
-          <select name="color_id" id="color-select" required></select>
-          <input name="sku" placeholder="SKU varian" required>
-          <input name="price" type="number" placeholder="Harga" required>
-          <input name="wholesale_price" type="number" placeholder="Harga grosir" required>
-          <input name="stock" type="number" placeholder="Stok" required>
-          <button class="btn btn--primary">Tambah varian</button>
-        </form>
-        <div id="variant-rows"></div>
-
-        <!-- Ubah harga banyak varian sekaligus. Preview WAJIB: salah ketik di sini
-             mengubah 44 harga, jadi admin harus lihat dulu sebelum simpan. -->
-        <div class="bulk-panel">
-          <div class="eyebrow">Ubah harga massal</div>
-          <div class="bulk-controls">
-            <label class="bulk-check"><input type="checkbox" id="bulk-all" checked> Pilih semua varian</label>
-            <select id="bulk-field">
-              <option value="price">Harga retail</option>
-              <option value="wholesale_price">Harga grosir</option>
-              <option value="both">Keduanya</option>
-            </select>
-            <select id="bulk-mode">
-              <option value="percent">Ubah persen (%)</option>
-              <option value="amount">Ubah nominal (Rp)</option>
-              <option value="set">Set harga baru (Rp)</option>
-            </select>
-            <input id="bulk-value" type="number" step="any" placeholder="mis. 5 atau -5" aria-label="Nilai perubahan">
-            <button class="btn" id="bulk-preview" type="button">Lihat pratinjau</button>
-          </div>
-          <div id="bulk-preview-box" hidden>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Varian</th><th class="num">Sebelum</th><th class="num">Sesudah</th><th class="num">Selisih</th></tr></thead>
-                <tbody id="bulk-preview-rows"></tbody>
-              </table>
-            </div>
-            <div class="bulk-confirm">
-              <b id="bulk-summary"></b>
-              <button class="btn btn--primary" id="bulk-apply" type="button">Terapkan</button>
-              <button class="btn" id="bulk-cancel" type="button">Batal</button>
-            </div>
-          </div>
-        </div>
-        <form id="pricing-form" class="inline-form">
-          <input name="min_quantity" type="number" placeholder="Mulai qty" required>
-          <input name="max_quantity" type="number" placeholder="Sampai qty">
-          <input name="price" type="number" placeholder="Harga bertingkat" required>
-          <button class="btn btn--primary">Simpan harga bertingkat</button>
-        </form>
-
-        <!-- Galeri gambar produk ini -->
-        <div class="eyebrow" style="margin-top:28px">Galeri gambar</div>
-        <h3 style="font:700 16px Manrope;margin:8px 0 0">Gambar produk</h3>
-        <p style="font-size:12px;color:var(--muted);margin:6px 0 0">Gambar pertama dipakai sebagai gambar utama di katalog.</p>
-        <div id="gallery-grid" class="gallery-grid"></div>
-        <div id="gallery-drop" class="drop-zone">Tarik gambar ke sini, atau <button type="button" class="btn" id="gallery-pick">pilih file</button></div>
-        <input id="gallery-input" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
-      </div>
+      </section>
     </div>
   </section>
 </main>
