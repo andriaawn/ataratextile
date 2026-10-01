@@ -1,7 +1,7 @@
 # Roadmap — apa yang tersisa
 
-**Updated:** 2026-09-30
-**Status:** Live di https://txt.invesbot.my.id · Fase 1 (admin Order) ✅ selesai · Fase 2 berikutnya
+**Updated:** 2026-10-01
+**Status:** Live di https://txt.invesbot.my.id · Fase 1 (admin Order) ✅ · URL bersih ✅ · UI/UX CMS ✅ · Fase 2 berikutnya
 
 > Satu sumber kebenaran untuk "apa yang belum dikerjakan". Setiap item menunjuk ke
 > detailnya. Jaga tetap akurat — roadmap basi itu menyesatkan.
@@ -22,6 +22,8 @@
 | **Fase 1: halaman admin Order** (tabel, filter, drawer, ubah status, resi) | commit `fase1`, `tests/admin-orders.test.sh` 12/12 |
 | **Fix sidebar admin** (`Orders → /admin-orders.html`, `Content → /` dihapus) | commit `fase1` |
 | **Kontras `--rust` & `--muted`** (WCAG AA) | `docs/design-system.md` §4, terukur 5.12/4.59 & 5.55/4.97 |
+| **URL bersih tanpa `.html`** (`/katalog`, `/admin/pesanan`, …) + 301 dari URL lama | `plans/0004-clean-urls.md`, `tests/admin-orders.test.sh` 16/16 |
+| **Rapikan UI/UX CMS** (fokus keyboard, anti-kedip, dashboard & produk diseragamkan, badge status produk) | `plans/0005-ui-ux-rapi.md`, `tests/admin-ui.test.sh` 17/17 |
 
 ---
 

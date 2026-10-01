@@ -7,7 +7,7 @@
 > **Jaga tetap akurat.** Handoff basi lebih buruk daripada tidak ada — dia aktif
 > menyesatkan. Kalau ada perubahan yang bikin file ini salah, perbaiki di sesi yang sama.
 
-**Last updated:** 2026-09-30
+**Last updated:** 2026-10-01
 
 ---
 
@@ -49,8 +49,8 @@ log → commit**. Nol kode sebelum plan disetujui. Push butuh approval terpisah.
 - **Roadmap:** [`plans/ROADMAP.md`](plans/ROADMAP.md)
 - **Angka penting:** 11 produk · 44 varian · 1 kategori · 4 warna · **0 order** ·
   1 akun admin · 34 endpoint API
-- **Deploy terakhir:** 2026-09-30 — Fase 1 (halaman admin Order + fix kontras) live
-- **Commit terakhir:** Fase 1 + URL bersih (`plans/0004`) — `admin-orders.html/js`, `tests/admin-orders.test.sh`
+- **Deploy terakhir:** 2026-10-01 — Rapikan UI/UX CMS admin (`plans/0005`) live
+- **Commit terakhir:** lihat `git log --oneline -5`
 - **Yang belum:** upload gambar produk, harga asli, editor konten, pelanggan, pembayaran
 
 ## 4. Risiko / blocker terbuka
@@ -118,6 +118,12 @@ log → commit**. Nol kode sebelum plan disetujui. Push butuh approval terpisah.
 - **Backend bukan bind-mounted** — ubah kode → `npm run build` → restart service.
 - **`pkill -f "node server/index.js"` bunuh diri sendiri** (pattern-nya ada di command
   line). Pakai `ps aux | grep ... | awk '{print $2}'` lalu `kill`.
+- **Panel yang bergantung sesi wajib punya `hidden` di HTML**, jangan disembunyikan lewat
+  JS saja — kalau tidak, form login berkedip sebelum JS selesai memeriksa sesi.
+- **Cincin fokus harus dua warna** (kuning `#ffd166` + halo `var(--ink)`). Satu warna saja
+  hilang di salah satu permukaan: kuning lenyap di kertas terang, gelap lenyap di header.
+- **Beranda `index.html` punya CSS inline sendiri** — dia **tidak** memakai `store.css`,
+  jadi perubahan token di `store.css` tidak menyentuhnya (dan sebaliknya).
 - **File yang sudah masuk git history tetap bisa dibaca** meski dihapus di commit baru
   (`git show <sha>:<path>`). Hapus data sensitif = rewrite history, bukan sekadar commit.
 - **`docker run ... cp /dev/stdin` gagal** (container non-root tak bisa baca stdin) —

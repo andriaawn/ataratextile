@@ -136,7 +136,7 @@ Sisanya sudah bagus dan dipertahankan (`ink` 14.8:1, `gold` di `ink` 7.3:1).
   /* teks */
   --text:           #132a2b;  /* 14.1:1 di --bg */
   --text-secondary: #5c6a6a;  /*  5.3:1 di --bg */
-  --text-muted:     #8a9694;  /* hanya untuk placeholder, BUKAN teks penting */
+  --text-muted:     #63716f;  /*  5.01:1 di paper — placeholder/non-kritis (dulu #8a9694 = 3.01 ❌) */
 
   /* brand */
   --brand-deep: #0d3132;      /* sidebar, header gelap */
@@ -167,9 +167,20 @@ Sisanya sudah bagus dan dipertahankan (`ink` 14.8:1, `gold` di `ink` 7.3:1).
 2. **Jangan pakai warna sebagai satu-satunya penanda.** Badge status selalu ada teksnya
    ("Dikirim"), bukan cuma titik hijau. (Buta warna itu 8% populasi pria.)
 3. **`--text-muted` jangan untuk teks penting** — cuma placeholder/ikon non-kritis.
+   Sekarang `#63716f` (5.01:1) supaya kalau kepakai di luar niat pun tetap lolos AA.
 4. **Kontras minimum: 4.5:1** untuk teks normal, 3:1 untuk teks besar/ikon.
 
 ### Badge status
+
+Dua kelompok, satu kelas dasar `.badge` (teks putih, huruf kapital, monospace):
+
+| Kelompok | Nilai | Kelas |
+|---|---|---|
+| Order | `pending_payment` `paid` `processing` `packed` `shipped` `completed` `cancelled` `refunded` | `.badge--<status>` |
+| Produk | `active` `draft` `archived` `out_of_stock` | `.badge--<status>` |
+
+Semua sudah diukur ≥4.5:1 dengan teks putih (§4). Status baru **wajib** ditambahkan ke
+kelompok yang sesuai dan diukur kontrasnya sebelum dipakai.
 
 ```html
 <span class="badge badge--shipped">Dikirim</span>
@@ -251,8 +262,11 @@ lompatan yang akan ditolak server.
 ## 8. Aksesibilitas
 
 - **Kontras:** 4.5:1 teks normal, 3:1 teks besar & ikon (semua token di §4 sudah lolos).
-- **Fokus terlihat:** outline 2px `--accent` + offset 2px. **Jangan pernah hapus outline
-  tanpa pengganti.**
+- **Fokus terlihat:** cincin **dua warna** — `outline: 2px solid #ffd166` + `box-shadow: 0 0 0 4px var(--ink)`.
+  Satu warna saja tidak cukup: kuning terbaca di header gelap (9.69:1) tapi hilang di kertas
+  terang (1.42:1); halo gelap kebalikannya (14.83:1 di kertas, 1.08:1 di gelap). Dipasang di
+  `:focus-visible` (bukan `:focus`) supaya klik mouse tidak memunculkan cincin.
+  **Jangan pernah hapus outline tanpa pengganti.**
 - **Keyboard:** semua aksi bisa dicapai tanpa mouse. Urutan tab logis. `Esc` menutup modal.
 - **HTML semantik dulu**, ARIA hanya kalau semantik kurang (`<button>`, bukan `<div onclick>`).
 - **Jangan sembunyikan aksi penting di hover** — di layar sentuh hover tidak ada.
@@ -275,12 +289,15 @@ Kalau nanti dibutuhkan, aturannya: pakai `prefers-color-scheme` + toggle manual,
 ## 10. Yang harus dicek sebelum sebuah halaman admin dianggap selesai
 
 - [ ] Kontras teks ≥ 4.5:1 (cek yang baru, jangan asumsi)
+- [ ] **Panel yang bergantung sesi punya `hidden` di HTML** — bukan disembunyikan JS (mencegah kedip)
 - [ ] Ada **empty state** (bukan tabel kosong)
 - [ ] Ada **loading state** (skeleton, bukan spinner)
 - [ ] Ada **error state** dengan jalan keluar
 - [ ] Setiap aksi destruktif punya modal konfirmasi
 - [ ] Setiap aksi sukses/gagal memunculkan toast
-- [ ] Bisa dipakai **tanpa mouse**
-- [ ] Bisa dipakai di **layar 360px**
+- [ ] Bisa dipakai **tanpa mouse** (Tab sampai habis, cincin fokus kelihatan di gelap & terang)
+- [ ] Bisa dipakai di **layar 360px** (nol scroll horizontal)
 - [ ] Angka uang/kuantitas pakai `tabular-nums`
 - [ ] Badge status selalu ada teks, bukan cuma warna
+- [ ] **Bahasa Indonesia** konsisten — judul tab, header tabel, tombol, eyebrow
+- [ ] Judul tab berpola `… — Admin Atandra`

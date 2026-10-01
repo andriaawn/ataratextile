@@ -69,6 +69,7 @@ npm run build
 # test
 bash tests/security.test.sh    # 10 cek: IDOR, admin takeover, mock-payment, XSS, headers
 bash tests/admin-orders.test.sh # 16 cek: URL bersih, halaman order, ubah status, resi, kontras
+bash tests/admin-ui.test.sh     # 17 cek: bahasa, badge, anti-kedip, cincin fokus, token warna
 # ⚠️ jalankan test di DB throwaway (bukan data/atandra.sqlite) — lihat pitfalls
 
 # health
@@ -123,6 +124,17 @@ tail -f logs/service.log
   `/tmp/atara_test*`, `cp -r server`, lalu hapus setelah selesai.
 - **Data di git history tetap terbaca** meski dihapus di commit baru (`git show <sha>:<path>`).
 - **`logs/`, `data/`, `dist/`, `.env` di-ignore git** — jangan pernah commit paksa.
+- **Panel yang bergantung sesi wajib punya `hidden` di HTML** — jangan disembunyikan lewat JS
+  saja. Kalau tidak, form login berkedip sebelum JS selesai memeriksa sesi (FOUC).
+- **Cincin fokus harus DUA warna** — kuning `#ffd166` + halo `var(--ink)`, dipasang di
+  `:focus-visible`. Satu warna selalu hilang di salah satu permukaan (kuning lenyap di kertas
+  terang, gelap lenyap di header gelap). Ukur fokus pakai **Tab asli**, bukan `.focus()` —
+  `.focus()` programatik tidak memicu `:focus-visible` dan bikin hasil ukur menyesatkan.
+- **Beranda `index.html` punya CSS inline sendiri** — dia **tidak** memakai `store.css`, jadi
+  perubahan token di `store.css` tidak menyentuhnya (dan sebaliknya). Jangan kaget.
+- **Test yang membaca HTML statis tidak melihat apa yang dipasang JS** — `.sub` dan badge
+  status dibuat di runtime. Baca bundle JS-nya, dan periksa **markup** (`badge badge--`),
+  bukan nama fungsi (minifier menggantinya).
 - **`write_file` ke file bernama persis `AGENTS.md`/`CLAUDE.md` itu di-guard** — butuh
   approval user (ini disengaja, bukan error).
 
@@ -132,11 +144,11 @@ tail -f logs/service.log
 AGENTS.md          file ini — aturan kerja
 HANDOFF.md         kondisi terkini (baca setelah file ini)
 BACKLOG.md         ide ditunda + alasan + trigger
-plans/             rencana sebelum kerja (ROADMAP.md, 0001-0004)
+plans/             rencana sebelum kerja (ROADMAP.md, 0001-0005)
 logs/              catatan kerja setelah selesai (TIDAK di-commit)
 docs/              arsitektur + referensi API (architecture.md, api.md, cms-architecture.md, design-system.md)
 server/            backend Express (index.js, auth.js, db.js, schema.sql, services.js)
 public/            aset statis (gambar)
-tests/             test keamanan
+tests/             test keamanan + admin (security, admin-orders, admin-ui)
 data/  dist/  .env di-ignore git
 ```

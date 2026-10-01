@@ -1,1 +1,139 @@
-<!doctype html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Products Admin — Atandra Textile</title><link rel="stylesheet" href="/store.css"></head><body class="admin"><header class="admin-nav"><div class="store-wrap store-nav"><a class="store-brand" href="/admin">ATANDRA <small>COMMERCE ADMIN</small></a><a href="/katalog">Lihat storefront ↗</a></div></header><main class="store-wrap admin-layout"><aside class="admin-side"><a href="/admin">Dashboard</a><a href="/admin/pesanan">Pesanan</a><a class="active" href="/admin/produk">Produk</a></aside><section><div id="products-auth" class="form-panel"><div class="eyebrow">Product operations</div><h1>Product management</h1><p id="products-message" class="notice">Memuat workspace admin...</p></div><div id="products-workspace" hidden><div class="admin-tools"><div class="form-panel"><div class="eyebrow">Create product</div><h2>Produk baru</h2><form id="product-form"><div class="field-grid"><div class="field"><label>Nama</label><input name="name" required></div><div class="field"><label>Slug</label><input name="slug" required></div><div class="field"><label>SKU</label><input name="sku" required></div><div class="field"><label>Kategori</label><select name="category_id" id="category-select" required></select></div><div class="field"><label>GSM</label><input name="gsm" type="number" required></div><div class="field"><label>Lebar</label><input name="width" placeholder="157 cm / 62″" required></div><div class="field"><label>Berat/yard</label><input name="weight_per_yard" required></div><div class="field"><label>Status</label><select name="status"><option value="draft">Draft</option><option value="active">Active</option></select></div><div class="field full"><label>Material</label><input name="material" required></div><div class="field full"><label>Construction</label><input name="construction" required></div><div class="field full"><label>Deskripsi / penggunaan</label><textarea name="description" rows="3" required></textarea></div><div class="field full"><label>URL gambar</label><input name="image" value="/img/fabric-hero.png"></div></div><button class="primary-btn">Simpan produk</button></form></div><div class="form-panel"><div class="eyebrow">Catalog structure</div><h2>Kategori & warna</h2><form id="category-form" class="inline-form"><input name="name" placeholder="Nama kategori" required><input name="slug" placeholder="slug" required><button class="shop-btn">Tambah kategori</button></form><form id="color-form" class="inline-form"><input name="name" placeholder="Nama warna" required><input name="code" placeholder="CLR-05" required><button class="shop-btn">Tambah warna</button></form></div></div><div class="admin-table"><table><thead><tr><th>Product</th><th>SKU</th><th>Status</th><th>GSM</th><th>Stock</th><th>Action</th></tr></thead><tbody id="product-rows"></tbody></table></div><div id="variant-panel" class="form-panel variant-panel" hidden><div class="eyebrow">Variant & inventory</div><h2 id="variant-title">Variant</h2><form id="variant-form" class="inline-form"><select name="color_id" id="color-select" required></select><input name="sku" placeholder="SKU variant" required><input name="price" type="number" placeholder="Harga" required><input name="wholesale_price" type="number" placeholder="Harga wholesale" required><input name="stock" type="number" placeholder="Stock" required><button class="shop-btn">Tambah variant</button></form><div id="variant-rows"></div><form id="pricing-form" class="inline-form"><input name="min_quantity" type="number" placeholder="Mulai qty" required><input name="max_quantity" type="number" placeholder="Sampai qty"><input name="price" type="number" placeholder="Harga tier" required><button class="shop-btn">Simpan tier pricing</button></form></div></div></section></main><script type="module" src="/admin-products.js"></script><script type="module">window.initAdminProducts()</script></body></html>
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Produk — Admin Atandra</title>
+<link rel="stylesheet" href="/store.css">
+</head>
+<body class="admin">
+<header class="admin-nav">
+  <div class="store-wrap store-nav">
+    <a class="store-brand" href="/admin">ATANDRA <small>COMMERCE ADMIN</small></a>
+    <a href="/katalog">Lihat storefront ↗</a>
+  </div>
+</header>
+
+<main class="store-wrap admin-layout">
+  <aside class="admin-side">
+    <a href="/admin">Dashboard</a>
+    <a href="/admin/pesanan">Pesanan</a>
+    <a class="active" href="/admin/produk">Produk</a>
+  </aside>
+
+  <section class="admin-main">
+
+    <!-- Indikator muat — menggantikan panel kosong yang tadinya berkedip -->
+    <div id="products-loading" class="form-panel">
+      <div class="skeleton" style="width:40%;margin-bottom:12px"></div>
+      <div class="skeleton" style="width:80%"></div>
+    </div>
+
+    <!-- Panel login — hanya tampil kalau sesi admin tidak ada -->
+    <div id="products-auth" class="form-panel" hidden>
+      <div class="eyebrow">Area terbatas</div>
+      <h1>Akses admin</h1>
+      <p>Login dengan akun admin untuk mengelola produk.</p>
+      <div class="field-grid">
+        <div class="field"><label for="admin-email">Email</label><input id="admin-email" type="email" autocomplete="email"></div>
+        <div class="field"><label for="admin-password">Password</label><input id="admin-password" type="password" autocomplete="current-password"></div>
+      </div>
+      <button class="btn btn--primary" id="admin-login">Login admin</button>
+      <p id="products-auth-message" class="notice" hidden></p>
+    </div>
+
+    <!-- Workspace -->
+    <div id="products-workspace" class="admin-stack" hidden>
+
+      <div class="page-head">
+        <div>
+          <div class="eyebrow">Operasional</div>
+          <h1>Produk</h1>
+          <p>Tambah produk baru, atur kategori &amp; warna, lalu kelola varian dan stok per warna.</p>
+        </div>
+        <button class="btn" id="products-refresh">Muat ulang</button>
+      </div>
+
+      <p id="products-message" class="notice" hidden></p>
+
+      <div class="admin-tools">
+        <div class="form-panel">
+          <div class="eyebrow">Produk baru</div>
+          <h2>Buat produk</h2>
+          <form id="product-form">
+            <div class="field-grid">
+              <div class="field"><label>Nama</label><input name="name" required></div>
+              <div class="field"><label>Slug</label><input name="slug" required></div>
+              <div class="field"><label>SKU</label><input name="sku" required></div>
+              <div class="field"><label>Kategori</label><select name="category_id" id="category-select" required></select></div>
+              <div class="field"><label>GSM</label><input name="gsm" type="number" required></div>
+              <div class="field"><label>Lebar</label><input name="width" placeholder="157 cm / 62″" required></div>
+              <div class="field"><label>Berat/yard</label><input name="weight_per_yard" required></div>
+              <div class="field"><label>Status</label><select name="status"><option value="draft">Draf</option><option value="active">Aktif</option></select></div>
+              <div class="field full"><label>Material</label><input name="material" required></div>
+              <div class="field full"><label>Construction</label><input name="construction" required></div>
+              <div class="field full"><label>Deskripsi / penggunaan</label><textarea name="description" rows="3" required></textarea></div>
+              <div class="field full"><label>URL gambar</label><input name="image" value="/img/fabric-hero.png"></div>
+            </div>
+            <button class="btn btn--primary">Simpan produk</button>
+          </form>
+        </div>
+        <div class="form-panel">
+          <div class="eyebrow">Struktur katalog</div>
+          <h2>Kategori &amp; warna</h2>
+          <form id="category-form" class="inline-form">
+            <input name="name" placeholder="Nama kategori" required>
+            <input name="slug" placeholder="slug" required>
+            <button class="btn btn--primary">Tambah kategori</button>
+          </form>
+          <form id="color-form" class="inline-form">
+            <input name="name" placeholder="Nama warna" required>
+            <input name="code" placeholder="CLR-05" required>
+            <button class="btn btn--primary">Tambah warna</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Produk</th>
+              <th>SKU</th>
+              <th>Status</th>
+              <th class="num">GSM</th>
+              <th class="num">Stok</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="product-rows"></tbody>
+        </table>
+      </div>
+
+      <div id="variant-panel" class="form-panel variant-panel" hidden>
+        <div class="eyebrow">Varian &amp; stok</div>
+        <h2 id="variant-title">Varian</h2>
+        <form id="variant-form" class="inline-form">
+          <select name="color_id" id="color-select" required></select>
+          <input name="sku" placeholder="SKU varian" required>
+          <input name="price" type="number" placeholder="Harga" required>
+          <input name="wholesale_price" type="number" placeholder="Harga grosir" required>
+          <input name="stock" type="number" placeholder="Stok" required>
+          <button class="btn btn--primary">Tambah varian</button>
+        </form>
+        <div id="variant-rows"></div>
+        <form id="pricing-form" class="inline-form">
+          <input name="min_quantity" type="number" placeholder="Mulai qty" required>
+          <input name="max_quantity" type="number" placeholder="Sampai qty">
+          <input name="price" type="number" placeholder="Harga bertingkat" required>
+          <button class="btn btn--primary">Simpan harga bertingkat</button>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="/admin-products.js"></script>
+<script type="module">window.initAdminProducts()</script>
+</body>
+</html>
