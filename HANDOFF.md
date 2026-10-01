@@ -48,10 +48,14 @@ log → commit**. Nol kode sebelum plan disetujui. Push butuh approval terpisah.
 
 - **Roadmap:** [`plans/ROADMAP.md`](plans/ROADMAP.md)
 - **Angka penting:** 11 produk · 44 varian · 1 kategori · 4 warna · **0 order** ·
-  1 akun admin · 34 endpoint API
-- **Deploy terakhir:** 2026-10-01 — Rapikan UI/UX CMS admin (`plans/0005`) live
+  1 akun admin · **42 endpoint API**
+- **Deploy terakhir:** 2026-10-01 — Fase 2A upload gambar produk (`plans/0006`) live
 - **Commit terakhir:** lihat `git log --oneline -5`
-- **Yang belum:** upload gambar produk, harga asli, editor konten, pelanggan, pembayaran
+- **Yang belum:** bulk edit harga, kelola kategori/warna lengkap, badge low-stock (2B–2E),
+  harga asli, editor konten, pelanggan, pembayaran
+- **⚠️ Gambar upload TIDAK di-commit** (`public/uploads/` di-`.gitignore`). Backup lewat
+  `bash scripts/backup-uploads.sh` (simpan 7 terbaru). Tanpa ini, gambar hilang kalau
+  server rusak.
 
 ## 4. Risiko / blocker terbuka
 
@@ -60,7 +64,7 @@ log → commit**. Nol kode sebelum plan disetujui. Push butuh approval terpisah.
 | 1 | ~~Belum ada halaman admin order~~ ✅ selesai 2026-09-30 | — | — |
 | 2 | Harga masih placeholder (`825000 + gsm*1000`) | 🟠 sedang | daftar harga asli dari user |
 | 3 | ~~Sidebar admin 2 link nyasar~~ ✅ selesai | — | — |
-| 4 | Nggak ada upload gambar — produk baru butuh URL manual | 🟠 sedang | kerja (Fase 2) |
+| 4 | ~~Nggak ada upload gambar — produk baru butuh URL manual~~ ✅ selesai 2026-10-01 (Fase 2A) | — | — |
 | 5 | Pembayaran masih manual (belum ada gateway) | 🟡 rendah | kerja (paling akhir) |
 | 6 | Repo **publik** + bisnis nyata — roadmap & backlog bisa dilihat orang | 🟡 rendah | keputusan user (sudah oke) |
 

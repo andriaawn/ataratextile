@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { all, one, run, transaction } from './db.js';
 import { ManualPaymentProvider, ManualShippingProvider, NotificationService } from './services.js';
+import { MAX_UPLOAD_BYTES, listUploads, removeImage, saveImage } from './uploads.js';
 import { clearSessionCookie, createSession, currentUser, hashPassword, requireAuth, requireRole, seedAdmin, setSessionCookie, verifyPassword } from './auth.js';
 
 const app = express();
@@ -27,7 +28,7 @@ app.use((_req, res, next) => {
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
   res.setHeader('Content-Security-Policy', [
     "default-src 'self'",
-    "img-src 'self' data:",
+    "img-src 'self' data: blob:",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "script-src 'self' 'unsafe-inline'",
@@ -166,6 +167,55 @@ app.patch('/api/admin/inventory/:variantId', ...adminOnly, (req, res) => { const
 app.put('/api/admin/products/:id/pricing', ...adminOnly, (req, res) => { const tiers = Array.isArray(req.body?.tiers) ? req.body.tiers : []; if (!tiers.length || tiers.some((tier) => Number(tier.min_quantity) < 1 || Number(tier.price) < 0)) return res.status(400).json({ error: 'Pricing tier tidak valid' }); transaction(() => { run('DELETE FROM price_tiers WHERE product_id=?', [req.params.id]); tiers.forEach((tier) => run('INSERT INTO price_tiers (product_id,min_quantity,max_quantity,price,label) VALUES (?,?,?,?,?)', [req.params.id, tier.min_quantity, tier.max_quantity || null, tier.price, tier.label || `${tier.min_quantity}+ roll`])); }); res.json({ tiers: all('SELECT * FROM price_tiers WHERE product_id=? ORDER BY min_quantity', [req.params.id]) }); });
 app.patch('/api/admin/orders/:id', ...adminOnly, (req, res) => { const statuses = ['pending_payment', 'paid', 'processing', 'packed', 'shipped', 'completed', 'cancelled', 'refunded']; const { status, tracking_number } = req.body || {}; if (!statuses.includes(status)) return res.status(400).json({ error: 'Status order tidak valid' }); run('UPDATE orders SET status=?,tracking_number=COALESCE(?,tracking_number),updated_at=CURRENT_TIMESTAMP WHERE id=?', [status, tracking_number || null, req.params.id]); run('UPDATE shipments SET status=?,tracking_number=COALESCE(?,tracking_number) WHERE order_id=?', [status === 'shipped' ? 'shipped' : status, tracking_number || null, req.params.id]); notifications.emit('order_status_changed', { orderId: req.params.id, status }); res.json({ ok: true }); });
 
+// ---- Upload gambar produk ----
+// Body mentah (bukan multipart) supaya tidak perlu dependency baru; satu request
+// = satu file. Jenis file ditentukan dari magic bytes di server/uploads.js,
+// bukan dari Content-Type yang bisa dipalsukan klien.
+const imageBody = express.raw({ type: () => true, limit: MAX_UPLOAD_BYTES });
+app.post('/api/admin/uploads', ...adminOnly, imageBody, async (req, res) => {
+  const buffer = req.body;
+  if (!Buffer.isBuffer(buffer) || !buffer.length) return res.status(400).json({ error: 'Tidak ada file yang dikirim.' });
+  const result = await saveImage(buffer, here);
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.status(201).json(result);
+});
+app.get('/api/admin/uploads', ...adminOnly, (_req, res) => res.json({ files: listUploads(here) }));
+app.delete('/api/admin/uploads/:name', ...adminOnly, (req, res) => { const result = removeImage(req.params.name, here); if (result.error) return res.status(result.status || 400).json({ error: result.error }); res.json({ ok: true }); });
+
+// Galeri: satu produk boleh punya banyak gambar, urut sort_order.
+app.get('/api/admin/products/:id/images', ...adminOnly, (req, res) => res.json({ images: all('SELECT id,url,alt,sort_order FROM product_images WHERE product_id=? ORDER BY sort_order,id', [req.params.id]) }));
+app.post('/api/admin/products/:id/images', ...adminOnly, (req, res) => {
+  const { url, alt = '' } = req.body || {};
+  if (!one('SELECT id FROM products WHERE id=?', [req.params.id])) return res.status(404).json({ error: 'Produk tidak ditemukan' });
+  if (typeof url !== 'string' || !url.trim()) return res.status(400).json({ error: 'URL gambar wajib diisi' });
+  // Hanya izinkan gambar yang kita layani sendiri atau sudah ada di galeri.
+  if (!/^\/uploads\/[a-f0-9]{16,64}\.(jpg|png|webp)$/.test(url.trim()) && !/^\/img\/[\w.-]+$/.test(url.trim())) return res.status(400).json({ error: 'URL gambar tidak valid' });
+  const next = one('SELECT COALESCE(MAX(sort_order),-1)+1 AS v FROM product_images WHERE product_id=?', [req.params.id]).v;
+  const row = run('INSERT INTO product_images (product_id,url,alt,sort_order) VALUES (?,?,?,?)', [req.params.id, url.trim(), String(alt), next]);
+  res.status(201).json({ id: row.id, url: url.trim(), alt: String(alt), sort_order: next });
+});
+app.delete('/api/admin/products/:id/images/:imageId', ...adminOnly, (req, res) => {
+  const image = one('SELECT * FROM product_images WHERE id=? AND product_id=?', [req.params.imageId, req.params.id]);
+  if (!image) return res.status(404).json({ error: 'Gambar tidak ditemukan' });
+  run('DELETE FROM product_images WHERE id=?', [req.params.imageId]);
+  // File fisik ikut dihapus hanya kalau tidak dipakai produk lain.
+  if (String(image.url).startsWith('/uploads/')) {
+    const stillUsed = one('SELECT id FROM product_images WHERE url=? LIMIT 1', [image.url]);
+    if (!stillUsed) removeImage(String(image.url).replace('/uploads/', ''), here);
+  }
+  res.json({ ok: true });
+});
+// Jadikan gambar utama = sort_order 0, sisanya digeser.
+app.patch('/api/admin/products/:id/images/:imageId/primary', ...adminOnly, (req, res) => {
+  const image = one('SELECT * FROM product_images WHERE id=? AND product_id=?', [req.params.imageId, req.params.id]);
+  if (!image) return res.status(404).json({ error: 'Gambar tidak ditemukan' });
+  transaction(() => {
+    run('UPDATE product_images SET sort_order=sort_order+1 WHERE product_id=?', [req.params.id]);
+    run('UPDATE product_images SET sort_order=0 WHERE id=?', [req.params.imageId]);
+  });
+  res.json({ ok: true, primary: image.url });
+});
+
 app.get('/api/admin/dashboard', requireAuth, requireRole('admin'), (_req, res) => res.json({ sales: one("SELECT COALESCE(SUM(total),0) AS value FROM orders WHERE status NOT IN ('cancelled','pending_payment')").value, orders: one('SELECT COUNT(*) AS value FROM orders').value, pendingPayments: one("SELECT COUNT(*) AS value FROM payments WHERE status='pending'").value, lowStock: all('SELECT v.sku,p.name,c.name AS color,inv.stock-inv.reserved_stock AS available_stock FROM inventory inv JOIN product_variants v ON v.id=inv.variant_id JOIN products p ON p.id=v.product_id JOIN colors c ON c.id=v.color_id WHERE inv.stock-inv.reserved_stock<=inv.low_stock_threshold').length, samples: one("SELECT COUNT(*) AS value FROM sample_requests WHERE status='requested'").value }));
 app.get('/api/admin/orders', requireAuth, requireRole('admin'), (_req, res) => res.json({ orders: all('SELECT o.*,c.name AS customer_name,c.email,p.status AS payment_status FROM orders o LEFT JOIN customers c ON c.id=o.customer_id LEFT JOIN payments p ON p.order_id=o.id ORDER BY o.created_at DESC') }));
 app.post('/api/samples', (req, res) => { const { customer_name, email, phone, product_id, color, quantity = 1, address } = req.body; if (!customer_name || !email || !phone || !product_id || !color || !address) return res.status(400).json({ error: 'Data sample belum lengkap' }); const sample = run('INSERT INTO sample_requests (customer_name,email,phone,product_id,color,quantity,address) VALUES (?,?,?,?,?,?,?)', [customer_name, email, phone, product_id, color, quantity, address]); notifications.emit('sample_request', { id: sample.id, email }); res.status(201).json({ id: sample.id, status: 'requested' }); });
@@ -210,5 +260,5 @@ for (const [clean, file] of Object.entries(PAGES)) {
 
 app.use(express.static(distDir));
 app.use(express.static(path.join(here, '..', 'public')));
-app.use((error, _req, res, _next) => { console.error(error); res.status(error.status || 500).json({ error: 'Terjadi kesalahan pada server' }); });
+app.use((error, _req, res, _next) => { console.error(error); const status = error.status || error.statusCode || 500; const message = status === 413 ? 'File terlalu besar (maksimal 8 MB).' : 'Terjadi kesalahan pada server'; res.status(status).json({ error: message }); });
 app.listen(port, () => console.log(`Atandra commerce running at http://localhost:${port}`));

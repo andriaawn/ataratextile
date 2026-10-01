@@ -73,7 +73,19 @@
               <div class="field full"><label>Material</label><input name="material" required></div>
               <div class="field full"><label>Construction</label><input name="construction" required></div>
               <div class="field full"><label>Deskripsi / penggunaan</label><textarea name="description" rows="3" required></textarea></div>
-              <div class="field full"><label>URL gambar</label><input name="image" value="/img/fabric-hero.png"></div>
+              <div class="field full">
+                <label for="image-input">Gambar produk</label>
+                <input id="image-input" type="file" accept="image/jpeg,image/png,image/webp">
+                <small class="field-hint">JPEG, PNG, atau WebP · maks 8 MB · otomatis dikecilkan ke 1600px</small>
+                <input name="image" id="image-url" type="hidden" value="/img/fabric-hero.png">
+                <div id="image-preview" class="image-preview" hidden>
+                  <img id="image-preview-img" alt="Pratinjau gambar produk">
+                  <div>
+                    <b id="image-status">Belum ada gambar baru</b>
+                    <small>Gambar ini akan dipakai sebagai gambar utama produk.</small>
+                  </div>
+                </div>
+              </div>
             </div>
             <button class="btn btn--primary">Simpan produk</button>
           </form>
@@ -128,6 +140,14 @@
           <input name="price" type="number" placeholder="Harga bertingkat" required>
           <button class="btn btn--primary">Simpan harga bertingkat</button>
         </form>
+
+        <!-- Galeri gambar produk ini -->
+        <div class="eyebrow" style="margin-top:28px">Galeri gambar</div>
+        <h3 style="font:700 16px Manrope;margin:8px 0 0">Gambar produk</h3>
+        <p style="font-size:12px;color:var(--muted);margin:6px 0 0">Gambar pertama dipakai sebagai gambar utama di katalog.</p>
+        <div id="gallery-grid" class="gallery-grid"></div>
+        <div id="gallery-drop" class="drop-zone">Tarik gambar ke sini, atau <button type="button" class="btn" id="gallery-pick">pilih file</button></div>
+        <input id="gallery-input" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
       </div>
     </div>
   </section>

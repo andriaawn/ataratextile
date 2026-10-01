@@ -16,6 +16,10 @@ dist-ssr
 .env.*
 !.env.example
 
+# Upload gambar produk — tidak di-commit (repo publik, ukuran membengkak).
+# Backup terpisah: scripts/backup-uploads.sh
+public/uploads/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

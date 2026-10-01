@@ -35,3 +35,4 @@ di framework, atau ikuti struktur plan yang sudah ada di folder ini:
 | 0003 | [Fase 1: Admin Order + kontras](0003-fase1-admin-order.md) | ✅ done 2026-09-30 |
 | 0004 | [URL bersih (hapus `.html`)](0004-clean-urls.md) | ✅ done 2026-09-30 |
 | 0005 | [Rapikan UI/UX CMS admin](0005-ui-ux-rapi.md) | ✅ done 2026-10-01 |
+| 0006 | [Fase 2: Product CMS](0006-fase2-product-cms.md) | 🚧 2A ✅ live · 2B–2E belum |

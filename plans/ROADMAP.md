@@ -1,7 +1,7 @@
 # Roadmap — apa yang tersisa
 
 **Updated:** 2026-10-01
-**Status:** Live di https://txt.invesbot.my.id · Fase 1 (admin Order) ✅ · URL bersih ✅ · UI/UX CMS ✅ · Fase 2 berikutnya
+**Status:** Live di https://txt.invesbot.my.id · Fase 1 (admin Order) ✅ · URL bersih ✅ · UI/UX CMS ✅ · Fase 2A (upload gambar) ✅ · 2B–2E berikutnya
 
 > Satu sumber kebenaran untuk "apa yang belum dikerjakan". Setiap item menunjuk ke
 > detailnya. Jaga tetap akurat — roadmap basi itu menyesatkan.

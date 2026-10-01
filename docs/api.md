@@ -80,6 +80,13 @@ Semua body request/response = JSON. Autentikasi pakai cookie `atandra_session`
 | PATCH | `/admin/variants/:id` | 🔒 | Ubah `sku, price, wholesale_price, active` |
 | PATCH | `/admin/inventory/:variantId` | 🔒 | Body: `stock` (≥ reserved), `low_stock_threshold?` |
 | PUT | `/admin/products/:id/pricing` | 🔒 | Ganti tier harga. Body: `{ tiers:[{min_quantity, max_quantity?, price, label?}] }` |
+| POST | `/admin/uploads` | 🔒 | Upload gambar. Body = **file mentah** (bukan multipart), `Content-Type: image/*`. Validasi magic bytes: JPEG/PNG/WebP saja. Maks 8 MB. Balikin `{name, url, bytes, originalBytes}`. Nama file = hash isi (idempoten) |
+| GET | `/admin/uploads` | 🔒 | Daftar file di `public/uploads/` |
+| DELETE | `/admin/uploads/:name` | 🔒 | Hapus file. `:name` wajib `[a-f0-9]{16,64}\.(jpg\|png\|webp)` — path traversal ditolak 400 |
+| GET | `/admin/products/:id/images` | 🔒 | Galeri produk, urut `sort_order` |
+| POST | `/admin/products/:id/images` | 🔒 | Tambah gambar. Body: `{url, alt?}`. `url` wajib `/uploads/<hash>.<ext>` atau `/img/<file>` — URL luar ditolak 400 |
+| DELETE | `/admin/products/:id/images/:imageId` | 🔒 | Hapus dari galeri. File fisik ikut terhapus **hanya kalau tidak dipakai produk lain** |
+| PATCH | `/admin/products/:id/images/:imageId/primary` | 🔒 | Jadikan gambar utama (`sort_order=0`), sisanya digeser |
 
 ---
 
