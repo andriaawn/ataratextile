@@ -32,7 +32,7 @@ Semua body request/response = JSON. Autentikasi pakai cookie `atandra_session`
 | Method | Path | Akses | Keterangan |
 |---|---|---|---|
 | GET | `/categories` | 🌐 | Semua kategori |
-| GET | `/products` | 🌐 | Daftar produk aktif. Query: `q` (cari nama/SKU/material), `category` (slug), `gsm` (±15) |
+| GET | `/products` | 🌐 | Daftar produk aktif. Query: `q` (cari nama/SKU/material), `category` (slug), `gsm` (±15). Tiap produk bawa `available_stock, low_stock_threshold, low_stock` |
 | GET | `/products/:slug` | 🌐 | Detail produk + `variants`, `tiers`, `images` |
 | GET | `/shipping/quote` | 🌐 | Query: `quantity`, `city` → `{ method, cost, estimatedDays }` |
 
@@ -79,10 +79,10 @@ Semua body request/response = JSON. Autentikasi pakai cookie `atandra_session`
 | POST | `/admin/products` | 🔒 | Buat produk. Field wajib: `category_id, name, slug, sku, description, material, construction, gsm, width, weight_per_yard, recommended_usage` |
 | PATCH | `/admin/products/:id` | 🔒 | Ubah field produk |
 | DELETE | `/admin/products/:id` | 🔒 | **Soft delete** → `status='archived'` (riwayat tetap utuh) |
-| GET | `/admin/products/:id/variants` | 🔒 | Varian produk + stok |
+| GET | `/admin/products/:id/variants` | 🔒 | Varian produk + stok + `low_stock_threshold` + **`low_stock`** (dihitung server) |
 | POST | `/admin/products/:id/variants` | 🔒 | Body: `color_id, sku, price, wholesale_price, stock?, low_stock_threshold?` |
 | PATCH | `/admin/variants/:id` | 🔒 | Ubah `sku, price, wholesale_price, active` |
-| PATCH | `/admin/inventory/:variantId` | 🔒 | Body: `stock` (≥ reserved), `low_stock_threshold?` |
+| PATCH | `/admin/inventory/:variantId` | 🔒 | Body: `stock` (≥ reserved), `low_stock_threshold?` (≥ 0, integer). Kirim `stock` saja **tidak** mengubah ambang |
 | POST | `/admin/variants/bulk-price` | 🔒 | Ubah harga banyak varian sekaligus. Body: `{ variant_ids:[], mode:'set'\|'percent'\|'amount', value, field?:'price'\|'wholesale_price'\|'both', dry_run? }`. **Atomik**: satu harga jadi ≤ 0 → 400 & nol yang berubah. `dry_run:true` → hanya pratinjau, tidak menulis |
 | PUT | `/admin/products/:id/pricing` | 🔒 | Ganti tier harga. Body: `{ tiers:[{min_quantity, max_quantity?, price, label?}] }` |
 | POST | `/admin/uploads` | 🔒 | Upload gambar. Body = **file mentah** (bukan multipart), `Content-Type: image/*`. Validasi magic bytes: JPEG/PNG/WebP saja. Maks 8 MB. Balikin `{name, url, bytes, originalBytes}`. Nama file = hash isi (idempoten) |

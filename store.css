@@ -143,6 +143,7 @@
   --status-pending:#8a6d1f;--status-paid:#1f6b4a;--status-process:#2c5f8a;
   --status-packed:#4a5578;--status-shipped:#3d6b8a;--status-done:#2f6b3f;
   --status-cancel:#7a4a4a;--status-refund:#6b4a6b;
+  --status-low-stock:#8a5a1e;
 }
 
 /* ===== Rapikan UI/UX CMS admin (plan 0005) ===== */
@@ -161,3 +162,5 @@
 .badge--draft{background:#5c6a6a}
 .badge--archived{background:#5f6d6b}
 .badge--out_of_stock{background:var(--danger)}
+/* Stok menipis (plan 0006, fase 2D) — teks putih 5.90:1, lolos WCAG AA */
+.badge--low-stock{background:var(--status-low-stock)}

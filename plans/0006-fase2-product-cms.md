@@ -1,6 +1,6 @@
 # 0006 — Fase 2: Product CMS
 
-Status: 🚧 2A ✅ · 2B ✅ · 2C ✅ SELESAI & LIVE · 2D–2E belum
+Status: 🚧 2A ✅ · 2B ✅ · 2C ✅ · **2D ✅ SELESAI & LIVE** · 2E belum
 Tanggal: 2026-10-01
 Turunan dari: [`0002-cms-roadmap.md`](0002-cms-roadmap.md) — bagian "FASE 2 — Product CMS"
 Dokumen pendukung: [`docs/cms-architecture.md`](../docs/cms-architecture.md),
@@ -15,8 +15,22 @@ Dokumen pendukung: [`docs/cms-architecture.md`](../docs/cms-architecture.md),
 | **2A — Upload gambar** | ✅ **SELESAI & LIVE** | `tests/uploads.test.sh` **38/38** · negative control GAGAL 3 |
 | **2B — Bulk edit harga** | ✅ **SELESAI & LIVE** | `tests/bulk-price.test.sh` **36/36** · negative control GAGAL 7 |
 | **2C — Kelola kategori & warna** | ✅ **SELESAI & LIVE** | `tests/catalog.test.sh` **37/37** · negative control GAGAL 10 |
-| 2D — Badge stok menipis | ⬜ belum | — |
+| **2D — Badge stok menipis** | ✅ **SELESAI & LIVE** | `tests/low-stock.test.sh` **28/28** · negative control GAGAL 8 |
 | 2E — Rapikan halaman Produk | ⬜ belum | — |
+
+**2D yang terpasang:**
+- `productSelect` + `serializeProduct` — ikut ambil `MIN(inv.low_stock_threshold)` dan hitung
+  `low_stock: available_stock <= low_stock_threshold` **di server**. Browser tidak menghitung
+  ulang, jadi tidak mungkin pratinjau beda dari kenyataan.
+- `GET /api/admin/products/:id/variants` — tambah `low_stock_threshold` + `low_stock` per varian.
+- `admin-products.html/js` — badge **"Menipis"** di kolom stok daftar produk dan di baris varian.
+- `store.css` — token `--status-low-stock: #8a5a1e` + `.badge--low-stock`
+  (putih di atasnya = **5.90:1**, lolos WCAG AA).
+- **Bug lama yang ikut sembuh:** `PATCH /api/admin/inventory/:variantId` **selalu 500** kalau
+  body-nya cuma `{stock}` — `sql.js` melempar kalau ada parameter `undefined`, dan
+  `low_stock_threshold` yang tidak dikirim diteruskan apa adanya. Artinya tombol "Simpan"
+  di panel varian **tidak pernah berhasil** menyimpan stok. Sekarang dinormalkan ke `null`
+  dulu (dan ambang divalidasi ≥ 0 integer → 400 kalau ngawur).
 
 **2C yang terpasang:**
 - `GET /api/admin/catalog` — kategori & warna **+ `usage_count`** (jumlah produk/varian
@@ -208,8 +222,16 @@ Setiap bagian = **satu commit yang bisa direview**, dengan test + bukti sendiri.
 - [x] `usage_count` ditampilkan di UI; tombol Hapus disabled kalau dipakai
 - [x] Test idempoten (154/154 dua kali berturut-turut)
 
-**2D–2E (belum):**
-- [ ] Badge stok menipis muncul kalau `available_stock <= threshold`
+**2D (selesai):**
+- [x] Badge "Stok menipis" kalau `available_stock <= threshold` — di daftar produk & baris varian
+- [x] `low_stock` dihitung **server** (satu sumber kebenaran), browser tidak hitung ulang
+- [x] Ambang batas benar-benar dibaca (dinaikkan → ikut berubah), batas `<=` bukan `<`
+- [x] Kontras badge lolos WCAG AA (putih di `#8a5a1e` = 5.90:1)
+- [x] Negative control GAGAL 8 cek
+- [x] Test idempoten (182/182 dua kali berturut-turut)
+
+**2E (belum):**
+- [ ] Halaman Produk dirapikan jadi tab/section
 - [ ] Nol error console di browser; bisa dipakai di 360px
 
 ---
@@ -258,6 +280,30 @@ Setiap bagian = **satu commit yang bisa direview**, dengan test + bukti sendiri.
     tidak bisa ditata, dan memblokir. Edit langsung di baris.
 14. **Satu endpoint ringkasan (`/admin/catalog` + `usage_count`) lebih baik daripada dua
     daftar + hitung di browser** — hitungannya ikut transaksi yang sama, jadi tidak basi.
+
+---
+
+## Pelajaran dari 2D (jangan diulang)
+
+15. **`sql.js` MELEMPAR kalau ada parameter `undefined`** (`statement.bind` → `undefined`).
+    Jangan pernah mengoper nilai `req.body` yang mungkin tidak ada langsung ke `run()`/`all()`.
+    Normalkan ke `null` dulu. Bug ini diam-diam membuat `PATCH /admin/inventory/:id` **selalu
+    500** saat cuma kirim `stock` — tombol "Simpan" di panel varian tidak pernah bekerja, dan
+    tidak ada yang sadar karena UI-nya hanya menampilkan pesan sukses palsu. **Selalu kirim
+    body yang benar-benar diuji, bukan yang "seharusnya".**
+16. **Hitung di server, sekali saja.** `low_stock` dihitung di `serializeProduct`; UI varian
+    awalnya menghitung ulang di browser (`available_stock <= threshold`) — itu dua rumus untuk
+    satu fakta, dan cepat atau lambat akan berbeda. Server mengirim `low_stock` boolean; UI
+    cuma menampilkan.
+17. **Batas "menipis" adalah `<=`, bukan `<`.** Stok 5 dengan ambang 5 **sudah** menipis. Ini
+    persis jenis kesalahan yang tidak kelihatan sampai ada yang kehabisan stok.
+18. **Komentar `//` di tengah baris bisa mematikan sisa baris itu.** `server/index.js` gaya
+    satu-baris-per-handler: menempelkan `// komentar` di tengah handler membuat semua kode
+    sesudahnya jadi komentar → `node --check` gagal "Unexpected end of input". Taruh komentar
+    di baris sendiri.
+19. **Kalau `node --check` bilang sintaks rusak, cari dulu apakah itu regresi kita** — bandingkan
+    `git show HEAD:file` vs working dengan tokenizer sederhana (kurung/literal/komentar
+    seimbang). Di sini pengeceknya menemukan kurung yang "masih terbuka" di baris yang tepat.
 
 ---
 
