@@ -303,5 +303,10 @@ Kalau nanti dibutuhkan, aturannya: pakai `prefers-color-scheme` + toggle manual,
       dijangkau keyboard, dan `.panel[hidden]{display:none}` ada setelah aturan grid
 - [ ] Kalau ada grid kolom (`1fr 1fr`): pakai **`minmax(0,1fr)`**, jangan `1fr` — input punya
       lebar intrinsik dan akan memaksa halaman melebar di 360px
+- [ ] Kalau grid **tanpa** `grid-template-columns` (kolom implisit `auto`): beri `min-width:0`
+      pada grid-nya — `auto` memakai min-content anak (tabel lebar) sebagai minimum dan
+      memaksa halaman melebar, walau anaknya sudah `overflow:auto`
+- [ ] **Uji lebar dengan halaman terisi**, bukan halaman login kosong — form login selalu
+      "lolos" dan menyembunyikan bug tata letak tabel
 - [ ] **Bahasa Indonesia** konsisten — judul tab, header tabel, tombol, eyebrow
 - [ ] Judul tab berpola `… — Admin Atandra`

@@ -203,3 +203,20 @@
 /* Di layar sempit, dua kolom jadi satu supaya tiap kontrol tetap terbaca. */
 @media (max-width:760px){.admin-tools{grid-template-columns:1fr}}
 #variant-empty .empty-state{background:white;border:1px solid var(--line)}
+/* ===== Layar sempit: halaman admin (plan 0007) ===== */
+/* `.admin-main` itu grid TANPA grid-template-columns, jadi kolomnya `auto`.
+   `auto` tidak mau menyusut di bawah min-content — dan min-content halaman
+   Pesanan adalah tabel 7 kolom (~782px). Akibatnya .admin-main memaksa seluruh
+   halaman melebar, dan `.table-wrap{overflow:auto}` tidak menolong karena
+   kolom grid-nya sendiri yang melar. Sama untuk .admin-layout (kolom `1fr`)
+   dan .kpi-strip (`repeat(4,1fr)` → label "STOK MENIPIS" jadi minimum).
+   `minmax(0,1fr)` + `min-width:0` melepas batas itu. Blok ini sengaja ditaruh
+   paling akhir supaya menang atas aturan lama di atas. */
+.admin-layout{grid-template-columns:minmax(0,220px) minmax(0,1fr)}
+.admin-main{grid-template-columns:minmax(0,1fr);min-width:0}
+.admin-side{min-width:0}
+.kpi-strip{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:760px){
+  .admin-layout{grid-template-columns:minmax(0,1fr)}
+  .kpi-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

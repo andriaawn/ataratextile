@@ -36,3 +36,4 @@ di framework, atau ikuti struktur plan yang sudah ada di folder ini:
 | 0004 | [URL bersih (hapus `.html`)](0004-clean-urls.md) | ✅ done 2026-09-30 |
 | 0005 | [Rapikan UI/UX CMS admin](0005-ui-ux-rapi.md) | ✅ done 2026-10-01 |
 | 0006 | [Fase 2: Product CMS](0006-fase2-product-cms.md) | ✅ Fase 2 SELESAI — 2A ✅ · 2B ✅ · 2C ✅ · 2D ✅ · 2E ✅ live |
+| 0007 | [Responsif halaman admin](0007-responsive-admin.md) | ✅ done 2026-10-01 (0px di 320–1440) |
