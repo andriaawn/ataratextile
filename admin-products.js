@@ -2,6 +2,8 @@ const api = async (path, options = {}) => { const response = await fetch(`/api${
 // Escape teks sebelum masuk innerHTML (cegah XSS dari data produk/kategori/warna).
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const message = (text, type = '') => { const node = document.querySelector('#products-message'); node.hidden = false; node.className = `notice ${type}`; node.textContent = text; };
+// Rupiah tanpa desimal — harga selalu bilangan bulat.
+const money = (value) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value) || 0);
 // Status produk → label Indonesia + kelas badge (skema badge sama dengan halaman Pesanan).
 const PRODUCT_STATUS = { active: 'Aktif', draft: 'Draf', archived: 'Diarsipkan', out_of_stock: 'Stok habis' };
 const statusBadge = (status) => `<span class="badge badge--${esc(status)}">${esc(PRODUCT_STATUS[status] || status)}</span>`;
@@ -126,8 +128,66 @@ function resetImagePreview() {
   if (input) input.value = '';
 }
 function bindCatalogForms() { document.querySelector('#category-form').addEventListener('submit', async (event) => { event.preventDefault(); try { await api('/admin/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget))) }); message('Kategori berhasil ditambahkan.', 'success'); } catch (error) { message(error.message, 'error'); } }); document.querySelector('#color-form').addEventListener('submit', async (event) => { event.preventDefault(); try { await api('/admin/colors', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget))) }); message('Warna berhasil ditambahkan.', 'success'); } catch (error) { message(error.message, 'error'); } }); }
-async function openVariants(productId, product) { const panel = document.querySelector('#variant-panel'); panel.hidden = false; document.querySelector('#variant-title').textContent = `Varian · ${product.name}`; const draw = async () => { const data = await api(`/admin/products/${productId}/variants`); document.querySelector('#variant-rows').innerHTML = data.variants.map((variant) => `<div class="variant-row"><span><b>${esc(variant.color)}</b><small>${esc(variant.sku)}</small></span><input data-price="${Number(variant.id)}" value="${esc(variant.price)}" type="number"><input data-wholesale="${Number(variant.id)}" value="${esc(variant.wholesale_price)}" type="number"><input data-stock="${Number(variant.id)}" value="${esc(variant.stock)}" type="number"><button class="btn" data-save-variant="${Number(variant.id)}">Simpan</button></div>`).join('') || '<div class="empty-state"><b>Belum ada varian</b>Tambahkan varian pertama lewat formulir di atas.</div>'; document.querySelectorAll('[data-save-variant]').forEach((button) => button.addEventListener('click', async () => { const id = button.dataset.saveVariant; await api(`/admin/variants/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ price: Number(document.querySelector(`[data-price="${id}"]`).value), wholesale_price: Number(document.querySelector(`[data-wholesale="${id}"]`).value) }) }); await api(`/admin/inventory/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stock: Number(document.querySelector(`[data-stock="${id}"]`).value) }) }); message('Varian dan stok tersimpan.', 'success'); })); }; await draw(); document.querySelector('#variant-form').onsubmit = async (event) => { event.preventDefault(); const data = Object.fromEntries(new FormData(event.currentTarget)); data.color_id = Number(data.color_id); data.price = Number(data.price); data.wholesale_price = Number(data.wholesale_price); data.stock = Number(data.stock); await api(`/admin/products/${productId}/variants`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); event.currentTarget.reset(); await draw(); }; document.querySelector('#pricing-form').onsubmit = async (event) => { event.preventDefault(); const data = Object.fromEntries(new FormData(event.currentTarget)); const current = await api(`/products/${product.slug}`); current.product.tiers.push({ min_quantity: Number(data.min_quantity), max_quantity: data.max_quantity ? Number(data.max_quantity) : null, price: Number(data.price), label: `${data.min_quantity}+ roll` }); await api(`/admin/products/${productId}/pricing`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tiers: current.product.tiers }) }); message('Pricing tier tersimpan.', 'success'); };
+async function openVariants(productId, product) { const panel = document.querySelector('#variant-panel'); panel.hidden = false; document.querySelector('#variant-title').textContent = `Varian · ${product.name}`; const draw = async () => { const data = await api(`/admin/products/${productId}/variants`); document.querySelector('#variant-rows').innerHTML = data.variants.map((variant) => `<div class="variant-row"><label class="bulk-check"><input type="checkbox" data-pick="${Number(variant.id)}" checked aria-label="Pilih ${esc(variant.color)}"></label><span><b>${esc(variant.color)}</b><small>${esc(variant.sku)}</small></span><input data-price="${Number(variant.id)}" value="${esc(variant.price)}" type="number"><input data-wholesale="${Number(variant.id)}" value="${esc(variant.wholesale_price)}" type="number"><input data-stock="${Number(variant.id)}" value="${esc(variant.stock)}" type="number"><button class="btn" data-save-variant="${Number(variant.id)}">Simpan</button></div>`).join('') || '<div class="empty-state"><b>Belum ada varian</b>Tambahkan varian pertama lewat formulir di atas.</div>'; document.querySelectorAll('[data-save-variant]').forEach((button) => button.addEventListener('click', async () => { const id = button.dataset.saveVariant; await api(`/admin/variants/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ price: Number(document.querySelector(`[data-price="${id}"]`).value), wholesale_price: Number(document.querySelector(`[data-wholesale="${id}"]`).value) }) }); await api(`/admin/inventory/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stock: Number(document.querySelector(`[data-stock="${id}"]`).value) }) }); message('Varian dan stok tersimpan.', 'success'); })); }; await draw(); document.querySelector('#variant-form').onsubmit = async (event) => { event.preventDefault(); const data = Object.fromEntries(new FormData(event.currentTarget)); data.color_id = Number(data.color_id); data.price = Number(data.price); data.wholesale_price = Number(data.wholesale_price); data.stock = Number(data.stock); await api(`/admin/products/${productId}/variants`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); event.currentTarget.reset(); await draw(); }; document.querySelector('#pricing-form').onsubmit = async (event) => { event.preventDefault(); const data = Object.fromEntries(new FormData(event.currentTarget)); const current = await api(`/products/${product.slug}`); current.product.tiers.push({ min_quantity: Number(data.min_quantity), max_quantity: data.max_quantity ? Number(data.max_quantity) : null, price: Number(data.price), label: `${data.min_quantity}+ roll` }); await api(`/admin/products/${productId}/pricing`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tiers: current.product.tiers }) }); message('Pricing tier tersimpan.', 'success'); };
+ bindBulkPrice(productId, draw);
  bindGallery(productId, draw);
+ }
+
+ // ---- Bulk ubah harga ----
+ // Alur: pilih varian → isi nilai → LIHAT PRATINJAU → baru Terapkan.
+ // Pratinjau dihitung di server juga (endpoint yang sama, tapi kering) supaya
+ // angka yang dilihat admin persis angka yang akan tersimpan.
+ function bindBulkPrice(productId, redraw) {
+ const box = document.querySelector('#bulk-preview-box');
+ const pick = () => [...document.querySelectorAll('[data-pick]:checked')].map((node) => Number(node.dataset.pick));
+ const rows = () => [...document.querySelectorAll('#variant-rows .variant-row')];
+
+ document.querySelector('#bulk-all').onchange = (event) => {
+   document.querySelectorAll('[data-pick]').forEach((node) => { node.checked = event.target.checked; });
+ };
+
+ document.querySelector('#bulk-preview').onclick = async () => {
+   const ids = pick();
+   const value = document.querySelector('#bulk-value').value;
+   if (!ids.length) return message('Pilih minimal satu varian dulu.', 'error');
+   if (value === '') return message('Isi dulu besar perubahannya.', 'error');
+   try {
+     const result = await api('/admin/variants/bulk-price', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ variant_ids: ids, mode: document.querySelector('#bulk-mode').value, value: Number(value), field: document.querySelector('#bulk-field').value, dry_run: true }) });
+     renderBulkPreview(result.changes);
+     box.dataset.pending = JSON.stringify({ variant_ids: ids, mode: document.querySelector('#bulk-mode').value, value: Number(value), field: document.querySelector('#bulk-field').value });
+     message('Pratinjau siap — belum ada yang berubah.', 'success');
+   } catch (error) { box.hidden = true; message(error.message, 'error'); }
+ };
+
+ const renderBulkPreview = (changes) => {
+   const label = new Map(rows().map((row) => [Number(row.querySelector('[data-price]')?.dataset.price), row.querySelector('span b')?.textContent || '']));
+   const FIELD_LABEL = { price: 'retail', wholesale_price: 'grosir' };
+   document.querySelector('#bulk-preview-rows').innerHTML = changes.flatMap((change) => Object.keys(change.after).map((key) => {
+     const diff = change.after[key] - change.before[key];
+     const klass = diff > 0 ? 'bulk-diff--up' : diff < 0 ? 'bulk-diff--down' : '';
+     return `<tr><td>${esc(label.get(change.id) || `#${change.id}`)} <small>${esc(FIELD_LABEL[key] || key)}</small></td><td class="num">${esc(money(change.before[key]))}</td><td class="num">${esc(money(change.after[key]))}</td><td class="num ${klass}">${diff >= 0 ? '+' : '−'}${esc(money(Math.abs(diff)))}</td></tr>`;
+   })).join('');
+   const key = Object.keys(changes[0].after)[0];
+   const totalDiff = changes.reduce((sum, change) => sum + (change.after[key] - change.before[key]), 0);
+   document.querySelector('#bulk-summary').textContent = `${changes.length} varian · ${money(changes[0].before[key])} → ${money(changes[0].after[key])} · total selisih ${totalDiff >= 0 ? '+' : '−'}${money(Math.abs(totalDiff))}`;
+   box.hidden = false;
+ };
+
+ document.querySelector('#bulk-cancel').onclick = () => { box.hidden = true; message('Pratinjau dibatalkan, tidak ada yang berubah.', 'success'); };
+
+ document.querySelector('#bulk-apply').onclick = async () => {
+   const payload = JSON.parse(box.dataset.pending || 'null');
+   if (!payload) return;
+   const button = document.querySelector('#bulk-apply');
+   button.disabled = true;
+   try {
+     const result = await api('/admin/variants/bulk-price', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+     box.hidden = true;
+     document.querySelector('#bulk-value').value = '';
+     message(`Harga ${result.updated} varian diperbarui.`, 'success');
+     await redraw();
+   } catch (error) { message(error.message, 'error'); } finally { button.disabled = false; }
+ };
  }
 
  // ---- Galeri gambar per produk ----

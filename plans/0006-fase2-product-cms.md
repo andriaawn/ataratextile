@@ -1,6 +1,6 @@
 # 0006 — Fase 2: Product CMS
 
-Status: 🚧 2A SELESAI & LIVE · 2B–2E belum
+Status: 🚧 2A ✅ & 2B ✅ SELESAI & LIVE · 2C–2E belum
 Tanggal: 2026-10-01
 Turunan dari: [`0002-cms-roadmap.md`](0002-cms-roadmap.md) — bagian "FASE 2 — Product CMS"
 Dokumen pendukung: [`docs/cms-architecture.md`](../docs/cms-architecture.md),
@@ -12,11 +12,23 @@ Dokumen pendukung: [`docs/cms-architecture.md`](../docs/cms-architecture.md),
 
 | Bagian | Status | Bukti |
 |---|---|---|
-| **2A — Upload gambar** | ✅ **SELESAI & LIVE** | `tests/uploads.test.sh` **37/37** · negative control GAGAL 3 |
-| 2B — Bulk edit harga | ⬜ belum | — |
+| **2A — Upload gambar** | ✅ **SELESAI & LIVE** | `tests/uploads.test.sh` **38/38** · negative control GAGAL 3 |
+| **2B — Bulk edit harga** | ✅ **SELESAI & LIVE** | `tests/bulk-price.test.sh` **36/36** · negative control GAGAL 7 |
 | 2C — Kelola kategori & warna | ⬜ belum | — |
 | 2D — Badge stok menipis | ⬜ belum | — |
 | 2E — Rapikan halaman Produk | ⬜ belum | — |
+
+**2B yang terpasang:**
+- `POST /api/admin/variants/bulk-price` — `{ variant_ids, mode, value, field, dry_run }`.
+  Mode `set` / `percent` / `amount`, field `price` / `wholesale_price` / `both`.
+- **Atomik**: semua harga dihitung dulu; kalau satu saja jadi ≤ 0 → **400, nol yang berubah**
+  (setengah jalan lebih buruk daripada tidak jalan).
+- **`dry_run: true`** → hitung + kembalikan pratinjau tanpa menulis apa pun. Pratinjau yang
+  dilihat admin = angka yang persis akan tersimpan (server yang menghitung, bukan browser).
+- `admin-products.html/js` — panel "Ubah harga massal": checkbox per varian, pilih semua,
+  mode, nilai, tabel pratinjau (sebelum → sesudah → selisih, warna naik/turun), Terapkan/Batal.
+- `tests/uploads.test.sh` — test 2A dijadikan **idempoten** (dulu pilih "produk pertama" yang
+  urutannya `created_at DESC` beresolusi detik → hasilnya berubah antar-run).
 
 **2A yang terpasang:**
 - `server/uploads.js` (baru) — magic bytes, hash nama, resize+strip EXIF via ffmpeg, hapus aman
@@ -165,8 +177,17 @@ Setiap bagian = **satu commit yang bisa direview**, dengan test + bukti sendiri.
 - [x] `tests/security.test.sh` **10/10** · `admin-orders` **16/16** · `admin-ui` **17/17** (nol regresi)
 - [x] DB produksi tidak tersentuh (test di throwaway `/tmp/atara_test6`, port 8881)
 
-**2B–2E (belum):**
-- [ ] Bulk harga: 44 varian berubah dalam **1 request**, preview cocok dengan hasil
+**2B (selesai):**
+- [x] Bulk harga: 44 varian berubah dalam **1 request**, preview cocok dengan hasil (36/36)
+- [x] **Atomik** — satu harga jadi ≤ 0 → 400 & **nol yang berubah** (bukti negative control 7b)
+- [x] `dry_run` tidak menulis apa pun (pratinjau aman)
+- [x] Mode `set`/`percent`/`amount` × field `price`/`wholesale_price`/`both`
+- [x] Endpoint tanpa login → 401; nilai bukan angka / mode ngawur / daftar kosong → 400
+- [x] Negative control GAGAL 7 cek (harga negatif tersimpan & varian lain ikut rusak)
+- [x] Test **idempoten** — 2× berturut-turut di DB yang sama, hasil sama (117/117)
+- [x] DB produksi tidak tersentuh (11 produk · 44 varian · 0 order)
+
+**2C–2E (belum):**
 - [ ] Hapus kategori/warna yang masih dipakai → **409**, tidak merusak data
 - [ ] Badge stok menipis muncul kalau `available_stock <= threshold`
 - [ ] Nol error console di browser; bisa dipakai di 360px
@@ -190,6 +211,20 @@ Setiap bagian = **satu commit yang bisa direview**, dengan test + bukti sendiri.
    file terunggah berkali-kali. Elemen HTML statis = listener hanya sekali.
 6. **`pkill -f 'pola'` bisa membunuh shell sendiri** kalau pola cocok dengan command
    shell-nya. Pakai `process_manage kill` dengan `session_id`.
+
+## Pelajaran dari 2B (jangan diulang)
+
+7. **Test yang memilih "item pertama" dari endpoint list itu flaky.** `ORDER BY created_at DESC`
+   beresolusi **detik**, jadi dua produk yang dibuat dalam detik yang sama urutannya tidak
+   pasti. Test 2A dulu ambil `products[0]` dan berasumsi produk itu punya gambar utama —
+   begitu test 2B bikin produk baru, asumsi itu pecah. **Pilih item berdasarkan sifat yang
+   diuji** (`next(p for p in products if p['image'] != url)`), bukan berdasarkan posisi.
+8. **Test harus idempoten.** Jalankan suite 2× berturut-turut di DB yang sama — kalau hasilnya
+   beda, test-nya yang salah, bukan kodenya. Bukti: 117/117 dua kali berturut-turut.
+9. **Produk buatan test sebaiknya `status: 'draft'`.** Produk `active` muncul di `/api/products`
+   dan menggeser asumsi test lain. `draft` tetap bisa dites (endpoint admin tidak filter status).
+10. **Negative control wajib: rusak → restart → test.** Kalau kode rusak crash saat start,
+    semua hasil jadi `000` (koneksi gagal) dan itu **bukan** bukti — test tidak pernah jalan.
 
 ---
 

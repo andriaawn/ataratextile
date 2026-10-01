@@ -79,9 +79,20 @@ C=$(curl -s -m 30 -b "$JAR" -o /dev/null -w '%{http_code}' -X POST "$BASE/api/ad
 LIST=$(curl -s -m 8 -b "$JAR" "$BASE/api/admin/uploads")
 if echo "$LIST" | grep -q "$NAME"; then ok "Daftar upload menampilkan file"; else bad "File tidak muncul di daftar: $LIST"; fi
 
-# ---- 9. Galeri: tambah gambar ke produk ----
-PID=$(curl -s -m 8 "$BASE/api/products" | python3 -c 'import json,sys; p=json.load(sys.stdin).get("products") or []; print(p[0]["id"] if p else "")' 2>/dev/null)
-SLUG=$(curl -s -m 8 "$BASE/api/products" | python3 -c 'import json,sys; p=json.load(sys.stdin).get("products") or []; print(p[0]["slug"] if p else "")' 2>/dev/null)
+# ---- 9. Galeri: tambah gambar ke produk yang SUDAH punya gambar utama ----
+# JANGAN pakai "produk pertama": urutannya `created_at DESC` beresolusi detik, dan
+# produk buatan test lain (2A sendiri / 2B) bisa muncul duluan. Kalau produk itu
+# gambar utamanya sudah URL kita, test 11 jadi salah lapor. Pilih produk yang
+# gambar utamanya BUKAN hasil upload ini → idempoten, dijalankan berapa kali pun.
+PICK=$(curl -s -m 8 "$BASE/api/products" | python3 -c "
+import json,sys
+products=json.load(sys.stdin).get('products') or []
+url='$URL'
+pick=next((p for p in products if p.get('image') and p['image']!=url), None)
+print(f\"{pick['id']} {pick['slug']}\" if pick else '')
+")
+PID=${PICK%% *}; SLUG=${PICK##* }
+[ -n "$PID" ] && ok "Produk uji punya gambar utama sendiri (id=$PID)" || bad "Tidak ada produk dengan gambar utama sendiri"
 IMGID=$(curl -s -m 8 -b "$JAR" -X POST "$BASE/api/admin/products/$PID/images" -H 'Content-Type: application/json' \
   -d "{\"url\":\"$URL\",\"alt\":\"Uji galeri\"}" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("id",""))' 2>/dev/null)
 [ -n "$IMGID" ] && ok "Tambah gambar ke galeri produk (id=$IMGID)" || bad "Gagal tambah gambar ke galeri"

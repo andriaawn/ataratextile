@@ -134,6 +134,40 @@
           <button class="btn btn--primary">Tambah varian</button>
         </form>
         <div id="variant-rows"></div>
+
+        <!-- Ubah harga banyak varian sekaligus. Preview WAJIB: salah ketik di sini
+             mengubah 44 harga, jadi admin harus lihat dulu sebelum simpan. -->
+        <div class="bulk-panel">
+          <div class="eyebrow">Ubah harga massal</div>
+          <div class="bulk-controls">
+            <label class="bulk-check"><input type="checkbox" id="bulk-all" checked> Pilih semua varian</label>
+            <select id="bulk-field">
+              <option value="price">Harga retail</option>
+              <option value="wholesale_price">Harga grosir</option>
+              <option value="both">Keduanya</option>
+            </select>
+            <select id="bulk-mode">
+              <option value="percent">Ubah persen (%)</option>
+              <option value="amount">Ubah nominal (Rp)</option>
+              <option value="set">Set harga baru (Rp)</option>
+            </select>
+            <input id="bulk-value" type="number" step="any" placeholder="mis. 5 atau -5" aria-label="Nilai perubahan">
+            <button class="btn" id="bulk-preview" type="button">Lihat pratinjau</button>
+          </div>
+          <div id="bulk-preview-box" hidden>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Varian</th><th class="num">Sebelum</th><th class="num">Sesudah</th><th class="num">Selisih</th></tr></thead>
+                <tbody id="bulk-preview-rows"></tbody>
+              </table>
+            </div>
+            <div class="bulk-confirm">
+              <b id="bulk-summary"></b>
+              <button class="btn btn--primary" id="bulk-apply" type="button">Terapkan</button>
+              <button class="btn" id="bulk-cancel" type="button">Batal</button>
+            </div>
+          </div>
+        </div>
         <form id="pricing-form" class="inline-form">
           <input name="min_quantity" type="number" placeholder="Mulai qty" required>
           <input name="max_quantity" type="number" placeholder="Sampai qty">

@@ -164,6 +164,54 @@ app.get('/api/admin/products/:id/variants', ...adminOnly, (req, res) => res.json
 app.post('/api/admin/products/:id/variants', ...adminOnly, (req, res) => { const { color_id, sku, price, wholesale_price, stock = 0, low_stock_threshold = 5 } = req.body || {}; if (!color_id || !sku || price === undefined || wholesale_price === undefined) return res.status(400).json({ error: 'Variant belum lengkap' }); try { const variant = run('INSERT INTO product_variants (product_id,color_id,sku,price,wholesale_price) VALUES (?,?,?,?,?)', [req.params.id, color_id, sku, price, wholesale_price]); run('INSERT INTO inventory (variant_id,stock,low_stock_threshold) VALUES (?,?,?)', [variant.id, stock, low_stock_threshold]); res.status(201).json({ variant: one('SELECT * FROM product_variants WHERE id=?', [variant.id]) }); } catch { res.status(409).json({ error: 'SKU variant sudah digunakan' }); } });
 app.patch('/api/admin/variants/:id', ...adminOnly, (req, res) => { const fields = ['sku', 'price', 'wholesale_price', 'active'].filter((field) => req.body?.[field] !== undefined); if (!fields.length) return res.status(400).json({ error: 'Tidak ada field variant yang diubah' }); run(`UPDATE product_variants SET ${fields.map((field) => `${field}=?`).join(',')} WHERE id=?`, [...fields.map((field) => req.body[field]), req.params.id]); res.json({ ok: true }); });
 app.patch('/api/admin/inventory/:variantId', ...adminOnly, (req, res) => { const { stock, low_stock_threshold } = req.body || {}; if (stock === undefined || Number(stock) < 0) return res.status(400).json({ error: 'Stock harus berupa angka positif' }); const current = one('SELECT reserved_stock FROM inventory WHERE variant_id=?', [req.params.variantId]); if (!current || Number(stock) < current.reserved_stock) return res.status(400).json({ error: 'Stock tidak boleh lebih kecil dari reserved stock' }); run('UPDATE inventory SET stock=?,low_stock_threshold=COALESCE(?,low_stock_threshold) WHERE variant_id=?', [Number(stock), low_stock_threshold, req.params.variantId]); res.json({ ok: true }); });
+
+// ---- Bulk ubah harga ----
+// Satu request untuk banyak varian. Dipakai saat harga kain naik/turun; mengubah
+// 44 varian satu per satu bukan pilihan.
+//
+// mode:  set → value | percent → lama x (1+value/100) | amount → lama + value
+// field: price | wholesale_price | both
+//
+// Semua dihitung DULU; kalau ada satu saja yang jadi <= 0, tidak ada yang berubah
+// (400). Setengah jalan lebih buruk daripada tidak jalan sama sekali.
+app.post('/api/admin/variants/bulk-price', ...adminOnly, (req, res) => {
+  const { variant_ids: variantIds, mode, value, field = 'price' } = req.body || {};
+  if (!Array.isArray(variantIds) || !variantIds.length) return res.status(400).json({ error: 'Pilih minimal satu varian' });
+  if (!['set', 'percent', 'amount'].includes(mode)) return res.status(400).json({ error: 'Mode harus set, percent, atau amount' });
+  if (!['price', 'wholesale_price', 'both'].includes(field)) return res.status(400).json({ error: 'Field harga tidak valid' });
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return res.status(400).json({ error: 'Nilai harus berupa angka' });
+  if (mode === 'set' && amount <= 0) return res.status(400).json({ error: 'Harga harus lebih dari 0' });
+  if (mode === 'percent' && amount <= -100) return res.status(400).json({ error: 'Persentase tidak boleh -100% atau kurang' });
+
+  const ids = [...new Set(variantIds.map(Number).filter((id) => Number.isInteger(id) && id > 0))];
+  if (!ids.length) return res.status(400).json({ error: 'ID varian tidak valid' });
+  const rows = all(`SELECT id, price, wholesale_price FROM product_variants WHERE id IN (${ids.map(() => '?').join(',')})`, ids);
+  if (!rows.length) return res.status(404).json({ error: 'Varian tidak ditemukan' });
+
+  const columns = field === 'both' ? ['price', 'wholesale_price'] : [field];
+  const next = (old) => mode === 'set' ? amount : mode === 'percent' ? Math.round(old * (1 + amount / 100)) : Math.round(old + amount);
+
+  const changes = [];
+  for (const row of rows) {
+    const change = { id: row.id, before: {}, after: {} };
+    for (const column of columns) {
+      const before = Number(row[column]);
+      const after = next(before);
+      if (!Number.isFinite(after) || after <= 0) return res.status(400).json({ error: `Harga varian #${row.id} jadi ${after} - dibatalkan, tidak ada yang diubah` });
+      change.before[column] = before;
+      change.after[column] = after;
+    }
+    changes.push(change);
+  }
+
+  if (req.body?.dry_run) return res.json({ updated: changes.length, field, mode, changes, dry_run: true });
+
+  transaction(() => changes.forEach((change) => {
+    run(`UPDATE product_variants SET ${columns.map((column) => `${column}=?`).join(',')} WHERE id=?`, [...columns.map((column) => change.after[column]), change.id]);
+  }));
+  res.json({ updated: changes.length, field, mode, changes });
+});
 app.put('/api/admin/products/:id/pricing', ...adminOnly, (req, res) => { const tiers = Array.isArray(req.body?.tiers) ? req.body.tiers : []; if (!tiers.length || tiers.some((tier) => Number(tier.min_quantity) < 1 || Number(tier.price) < 0)) return res.status(400).json({ error: 'Pricing tier tidak valid' }); transaction(() => { run('DELETE FROM price_tiers WHERE product_id=?', [req.params.id]); tiers.forEach((tier) => run('INSERT INTO price_tiers (product_id,min_quantity,max_quantity,price,label) VALUES (?,?,?,?,?)', [req.params.id, tier.min_quantity, tier.max_quantity || null, tier.price, tier.label || `${tier.min_quantity}+ roll`])); }); res.json({ tiers: all('SELECT * FROM price_tiers WHERE product_id=? ORDER BY min_quantity', [req.params.id]) }); });
 app.patch('/api/admin/orders/:id', ...adminOnly, (req, res) => { const statuses = ['pending_payment', 'paid', 'processing', 'packed', 'shipped', 'completed', 'cancelled', 'refunded']; const { status, tracking_number } = req.body || {}; if (!statuses.includes(status)) return res.status(400).json({ error: 'Status order tidak valid' }); run('UPDATE orders SET status=?,tracking_number=COALESCE(?,tracking_number),updated_at=CURRENT_TIMESTAMP WHERE id=?', [status, tracking_number || null, req.params.id]); run('UPDATE shipments SET status=?,tracking_number=COALESCE(?,tracking_number) WHERE order_id=?', [status === 'shipped' ? 'shipped' : status, tracking_number || null, req.params.id]); notifications.emit('order_status_changed', { orderId: req.params.id, status }); res.json({ ok: true }); });
 

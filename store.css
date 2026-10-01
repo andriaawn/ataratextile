@@ -69,6 +69,18 @@
 .thumb{padding:0;border:2px solid transparent;background:none;cursor:pointer;flex:0 0 auto}
 .thumb img{display:block;width:64px;height:64px;object-fit:cover}
 .thumb.active{border-color:var(--ink)}
+/* --- Ubah harga massal (plan 0006, fase 2B) --- */
+.bulk-panel{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+.bulk-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.bulk-controls select,.bulk-controls input{padding:6px 8px;border:1px solid var(--line);background:#fff;font:inherit;font-size:12px}
+.bulk-controls input{width:8rem}
+.bulk-check{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:pointer}
+.bulk-check input{width:auto}
+#bulk-preview-box{margin-top:14px}
+.bulk-confirm{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+.bulk-confirm b{font-weight:600;font-size:12px}
+.bulk-diff--up{color:#8a5a1e}
+.bulk-diff--down{color:#2f6b4f}
 .skeleton{background:linear-gradient(90deg,var(--surface-sunken) 25%,#e6eae4 50%,var(--surface-sunken) 75%);background-size:200% 100%;animation:sk 1.2s infinite;height:12px}
 @keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .drawer-backdrop{position:fixed;inset:0;background:rgba(13,49,50,.35);opacity:0;pointer-events:none;transition:opacity .16s;z-index:40}
