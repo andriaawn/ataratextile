@@ -74,6 +74,18 @@
       </div>
 
       <p class="sub" style="color:var(--muted);font-size:12px;margin:0">Hanya 8 pesanan terbaru yang ditampilkan di sini.</p>
+
+      <details class="password-panel" id="password-panel">
+        <summary>Ganti password</summary>
+        <p class="sub">Setelah diganti, semua perangkat (termasuk yang ini) harus login ulang.</p>
+        <div class="field-grid">
+          <div class="field"><label for="password-current">Password sekarang</label><input id="password-current" type="password" autocomplete="current-password"></div>
+          <div class="field"><label for="password-new">Password baru (min 12 karakter)</label><input id="password-new" type="password" autocomplete="new-password"></div>
+          <div class="field"><label for="password-repeat">Ulangi password baru</label><input id="password-repeat" type="password" autocomplete="new-password"></div>
+        </div>
+        <button class="btn btn--primary" id="password-submit">Ganti password</button>
+        <p id="password-message" class="notice" hidden></p>
+      </details>
     </div>
   </section>
 </main>

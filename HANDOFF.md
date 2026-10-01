@@ -48,8 +48,8 @@ log → commit**. Nol kode sebelum plan disetujui. Push butuh approval terpisah.
 
 - **Roadmap:** [`plans/ROADMAP.md`](plans/ROADMAP.md)
 - **Angka penting:** 11 produk · 44 varian · 1 kategori · 4 warna · **0 order** ·
-  1 akun admin · **52 endpoint API**
-- **Deploy terakhir:** 2026-10-01 — Responsif halaman admin (`plans/0007`) live
+  1 akun admin · **53 endpoint API**
+- **Deploy terakhir:** 2026-10-01 — Tutup panel admin sebelum login (`plans/0009`) live
 - **Commit terakhir:** lihat `git log --oneline -5`
 - **Fase 2 SELESAI.** Yang belum: harga asli, editor konten, pelanggan, pembayaran
 - **⚠️ Gambar upload TIDAK di-commit** (`public/uploads/` di-`.gitignore`). Backup lewat

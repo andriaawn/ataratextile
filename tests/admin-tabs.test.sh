@@ -140,7 +140,10 @@ else
   case "$CSSB" in
     *'.admin-panel[hidden]{display:none}'*) ok "10a. .admin-panel[hidden]{display:none} ada (tidak bentrok dengan display:grid)";;
     *) bad "10a. aturan .admin-panel[hidden] tidak ada — panel bisa tetap tampil";;
-  esac
+    esac
+    # Penjaga plan 0009: workspace (class admin-stack) juga display:grid, jadi atribut
+    # `hidden`-nya kalah spesifisitas. Harus ada penutup global.
+    case "$CSSB" in *'[hidden]{display:none!important}'*) ok "10a2. penutup global [hidden]{display:none!important} ada (workspace ikut tersembunyi)";; *) bad "10a2. penutup global [hidden] tidak ada — workspace bisa tampil sebelum login";; esac
   case "$CSSB" in *'.admin-tabs{'*) ok "10b. CSS .admin-tabs ada";; *) bad "10b. CSS .admin-tabs tidak ada";; esac
   case "$CSSB" in *'.admin-tab.is-active'*) ok "10c. CSS tab aktif ada";; *) bad "10c. CSS tab aktif tidak ada";; esac
   # Penjaga regresi: input punya lebar intrinsik, jadi grid `1fr 1fr` membuat

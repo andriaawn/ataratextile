@@ -220,3 +220,15 @@
   .admin-layout{grid-template-columns:minmax(0,1fr)}
   .kpi-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+/* Panel ganti password di dashboard admin */
+.password-panel{margin-top:20px;border-top:1px solid var(--line);padding-top:16px}
+.password-panel summary{cursor:pointer;font:500 11px 'DM Mono';letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.password-panel[open] summary{margin-bottom:12px}
+.password-panel .field-grid{margin-bottom:12px}
+.password-panel .sub{color:var(--muted);font-size:12px;margin:0 0 12px}
+/* WAJIB: atribut `hidden` bawaan browser (display:none) KALAH spesifisitas dari
+   aturan kelas — mis. `.admin-stack{display:grid}` membuat dashboard admin tampil
+   sebelum login. Satu aturan ini menutup SEMUA elemen ber-`hidden`, sekarang dan
+   di masa depan. `!important` tidak memblokir JS: semua kode menyembunyikan lewat
+   properti `.hidden`, bukan `style.display`. */
+[hidden]{display:none!important}

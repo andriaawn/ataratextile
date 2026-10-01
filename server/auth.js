@@ -66,6 +66,43 @@ const WEAK_PASSWORDS = new Set([
   'atandra', 'atandra123', 'admin12345', 'password1',
 ]);
 
+export const MIN_ADMIN_PASSWORD_LENGTH = 12;
+
+// Validasi password baru. Mengembalikan pesan error (Indonesia) atau null kalau lolos.
+// Dipakai endpoint ganti-password DAN seedAdmin, supaya aturannya cuma ada di satu tempat.
+export function validateNewPassword(next, current) {
+  const value = String(next || '');
+  if (value.length < MIN_ADMIN_PASSWORD_LENGTH) {
+    return `Password baru minimal ${MIN_ADMIN_PASSWORD_LENGTH} karakter`;
+  }
+  if (WEAK_PASSWORDS.has(value.toLowerCase())) {
+    return 'Password terlalu umum, pilih yang lain';
+  }
+  if (current !== undefined && value === String(current)) {
+    return 'Password baru harus berbeda dari password sekarang';
+  }
+  return null;
+}
+
+// Ganti password user sendiri. Mengembalikan { ok:true } atau { ok:false, code, error }.
+// Tidak pernah mengembalikan atau mencatat nilai password.
+export function changePassword(userId, currentPassword, newPassword) {
+  const user = one('SELECT id,password_hash FROM users WHERE id=? AND active=1', [userId]);
+  if (!user) return { ok: false, code: 401, error: 'Autentikasi diperlukan' };
+  // Wajib buktikan password sekarang. Tanpa ini, siapa pun yang memegang sesi
+  // terbuka bisa mengunci pemilik akun dari akunnya sendiri.
+  if (!verifyPassword(currentPassword, user.password_hash)) {
+    return { ok: false, code: 401, error: 'Password sekarang salah' };
+  }
+  const invalid = validateNewPassword(newPassword, currentPassword);
+  if (invalid) return { ok: false, code: 400, error: invalid };
+  run('UPDATE users SET password_hash=? WHERE id=?', [hashPassword(newPassword), user.id]);
+  // Gugurkan SEMUA sesi user ini — termasuk sesi yang sedang dipakai. Cookie lama
+  // harus benar-benar mati, bukan cuma "tidak dipakai lagi".
+  run('DELETE FROM sessions WHERE user_id=?', [user.id]);
+  return { ok: true };
+}
+
 export function seedAdmin() {
   const email = process.env.ADMIN_EMAIL;
   const password = process.env.ADMIN_PASSWORD;

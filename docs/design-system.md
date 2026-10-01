@@ -290,6 +290,11 @@ Kalau nanti dibutuhkan, aturannya: pakai `prefers-color-scheme` + toggle manual,
 
 - [ ] Kontras teks ≥ 4.5:1 (cek yang baru, jangan asumsi)
 - [ ] **Panel yang bergantung sesi punya `hidden` di HTML** — bukan disembunyikan JS (mencegah kedip)
+- [ ] **⚠️ Atribut `hidden` KALAH spesifisitas dari aturan kelas.** Kalau elemennya punya
+      kelas ber-`display` (mis. `.admin-stack{display:grid}`, `.image-preview{display:flex}`),
+      panel akan **tetap tampil walau ada `hidden`** — termasuk **sebelum login**. Wajib ada
+      penutup global `[hidden]{display:none!important}` di akhir `store.css`. Ini bug nyata
+      yang pernah lolos (plan 0009): dashboard & workspace admin terlihat tanpa login.
 - [ ] Ada **empty state** (bukan tabel kosong)
 - [ ] Ada **loading state** (skeleton, bukan spinner)
 - [ ] Ada **error state** dengan jalan keluar

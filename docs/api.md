@@ -26,6 +26,7 @@ Semua body request/response = JSON. Autentikasi pakai cookie `atandra_session`
 | POST | `/auth/logout` | 🌐 | Hapus sesi + cookie |
 | GET | `/auth/me` | 👤 | Info user yang sedang login |
 | POST | `/auth/admin-register` | 🌐 | Daftar admin. **Butuh `invite_key`** (dari `ADMIN_INVITE_KEY`). Rate limit 5/jam/IP. 503 kalau key belum dikonfigurasi |
+| POST | `/auth/change-password` | 👤 | Ganti password sendiri. Body: `current_password, new_password` (min 12). Wajib buktikan password sekarang. **Semua sesi user digugurkan** → cookie dihapus. Rate limit 5 gagal/15 menit/IP. 204 sukses |
 
 ## Katalog (publik)
 

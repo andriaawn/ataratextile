@@ -33,5 +33,26 @@ async function loadAdminDashboard() {
   const recent = orders.orders.slice(0, DASHBOARD_ROWS);
   document.querySelector('#orders').innerHTML = recent.map((order) => `<tr><td><b>${esc(order.order_number)}</b></td><td>${esc(order.customer_name || '—')}</td><td class="num">${esc(money(order.total))}</td><td><span class="badge badge--${esc(order.status)}">${esc(ORDER_STATUS_LABEL[order.status] || order.status)}</span></td><td>${esc(PAYMENT_STATUS_LABEL[order.payment_status] || order.payment_status || '—')}</td></tr>`).join('') || `<tr><td colspan="5"><div class="empty-state"><b>Belum ada pesanan</b>Pesanan yang masuk dari checkout akan muncul di sini.</div></td></tr>`;
 }
-async function initAdmin() { const message = document.querySelector('#admin-auth-message'); const show = (text) => { message.hidden = false; message.textContent = text; }; try { await api('/auth/me'); await loadAdminDashboard(); } catch { document.querySelector('#admin-auth').hidden = false; } document.querySelector('#admin-login').addEventListener('click', async () => { try { await api('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: document.querySelector('#admin-email').value, password: document.querySelector('#admin-password').value }) }); await loadAdminDashboard(); } catch (error) { show(error.message); } }); document.querySelector('#admin-register').addEventListener('click', async () => { try { await api('/auth/admin-register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: document.querySelector('#admin-name').value, email: document.querySelector('#admin-email').value, password: document.querySelector('#admin-password').value, invite_key: document.querySelector('#admin-invite').value }) }); await loadAdminDashboard(); } catch (error) { show(error.message); } }); document.querySelector('#admin-logout').addEventListener('click', async () => { await api('/auth/logout', { method: 'POST' }); location.reload(); }); }
+async function initAdmin() { const message = document.querySelector('#admin-auth-message'); const show = (text) => { message.hidden = false; message.textContent = text; }; try { await api('/auth/me'); await loadAdminDashboard(); } catch { document.querySelector('#admin-auth').hidden = false; } document.querySelector('#admin-login').addEventListener('click', async () => { try { await api('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: document.querySelector('#admin-email').value, password: document.querySelector('#admin-password').value }) }); await loadAdminDashboard(); } catch (error) { show(error.message); } }); document.querySelector('#admin-register').addEventListener('click', async () => { try { await api('/auth/admin-register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: document.querySelector('#admin-name').value, email: document.querySelector('#admin-email').value, password: document.querySelector('#admin-password').value, invite_key: document.querySelector('#admin-invite').value }) }); await loadAdminDashboard(); } catch (error) { show(error.message); } }); document.querySelector('#admin-logout').addEventListener('click', async () => { await api('/auth/logout', { method: 'POST' }); location.reload(); }); bindChangePassword(); }
+
+// Form ganti password. Setelah sukses semua sesi mati (termasuk sesi ini), jadi
+// user diarahkan login ulang — bukan kejutan, itu memang yang dijanjikan di UI.
+function bindChangePassword() {
+  const form = document.querySelector('#password-panel');
+  if (!form) return;
+  const message = document.querySelector('#password-message');
+  const show = (text, isError) => { message.hidden = false; message.textContent = text; message.style.color = isError ? 'var(--rust)' : 'var(--ink)'; };
+  const current = document.querySelector('#password-current');
+  const next = document.querySelector('#password-new');
+  const repeat = document.querySelector('#password-repeat');
+  document.querySelector('#password-submit').addEventListener('click', async () => {
+    if (next.value !== repeat.value) { show('Ulangi password baru tidak cocok', true); return; }
+    try {
+      await api('/auth/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ current_password: current.value, new_password: next.value }) });
+      current.value = ''; next.value = ''; repeat.value = '';
+      show('Password diganti. Semua perangkat harus login ulang — mengalihkan…', false);
+      setTimeout(() => location.reload(), 1800);
+    } catch (error) { show(error.message, true); }
+  });
+}
 window.initShop = initShop; window.initProduct = initProduct; window.initCheckout = initCheckout; window.initAdmin = initAdmin; updateCartCount();
