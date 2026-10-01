@@ -50,7 +50,7 @@ log → commit**. Nol kode sebelum plan disetujui. Push butuh approval terpisah.
 - **Angka penting:** 11 produk · 44 varian · 1 kategori · 4 warna · **0 order** ·
   1 akun admin · 34 endpoint API
 - **Deploy terakhir:** 2026-09-30 — Fase 1 (halaman admin Order + fix kontras) live
-- **Commit terakhir:** Fase 1 — `admin-orders.html/js`, `tests/admin-orders.test.sh`
+- **Commit terakhir:** Fase 1 + URL bersih (`plans/0004`) — `admin-orders.html/js`, `tests/admin-orders.test.sh`
 - **Yang belum:** upload gambar produk, harga asli, editor konten, pelanggan, pembayaran
 
 ## 4. Risiko / blocker terbuka

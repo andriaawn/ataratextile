@@ -26,8 +26,27 @@ LOGIN=$(curl -s -m 8 -c "$JAR" -o /dev/null -w '%{http_code}' -X POST "$BASE/api
 [ "$LOGIN" = "200" ] && ok "Login admin berhasil (200)" || bad "Login admin = $LOGIN (harus 200)"
 
 # ---- 3. Halaman admin order dilayani ----
+CODE=$(curl -s -m 8 -o /dev/null -w '%{http_code}' "$BASE/admin/pesanan")
+[ "$CODE" = "200" ] && ok "GET /admin/pesanan dilayani (200)" || bad "GET /admin/pesanan = $CODE (harus 200)"
+
+# ---- 3b. URL .html lama di-301 ke URL bersih ----
 CODE=$(curl -s -m 8 -o /dev/null -w '%{http_code}' "$BASE/admin-orders.html")
-[ "$CODE" = "200" ] && ok "GET /admin-orders.html dilayani (200)" || bad "GET /admin-orders.html = $CODE (harus 200)"
+[ "$CODE" = "301" ] && ok "GET /admin-orders.html → 301 (URL lama hidup)" || bad "GET /admin-orders.html = $CODE (harus 301)"
+
+LOC=$(curl -s -m 8 -D - -o /dev/null "$BASE/admin-orders.html" | grep -i '^location:' | tr -d '\r' | awk '{print $2}')
+[ "$LOC" = "/admin/pesanan" ] && ok "301 mengarah ke /admin/pesanan" || bad "301 mengarah ke '$LOC' (harus /admin/pesanan)"
+
+# ---- 3c. redirect mempertahankan query string ----
+LOC=$(curl -s -m 8 -D - -o /dev/null "$BASE/product.html?slug=double-pique-165-blend-dty" | grep -i '^location:' | tr -d '\r' | awk '{print $2}')
+[ "$LOC" = "/produk?slug=double-pique-165-blend-dty" ] && ok "301 mempertahankan query (?slug=)" || bad "query hilang: '$LOC'"
+
+# ---- 3d. semua URL bersih 200 ----
+ALL_OK=1
+for p in / /katalog /produk /keranjang /akun /akun/pesanan /akun/pesanan/lihat /admin /admin/pesanan /admin/produk; do
+  c=$(curl -s -m 8 -o /dev/null -w '%{http_code}' "$BASE$p")
+  [ "$c" = "200" ] || { ALL_OK=0; echo "     (gagal: $p = $c)"; }
+done
+[ "$ALL_OK" = "1" ] && ok "Semua 10 URL bersih → 200" || bad "Ada URL bersih yang bukan 200"
 
 # ---- 4. Bikin order test lewat API publik ----
 VARIANT=$(curl -s -m 8 "$BASE/api/products" | python3 -c 'import json,sys; d=json.load(sys.stdin); p=(d.get("products") or []); print(p[0]["id"] if p else "")' 2>/dev/null)
@@ -63,7 +82,7 @@ BODY=$(curl -s -m 8 "$BASE/api/orders/1")
 if echo "$BODY" | grep -q "budi@test.local"; then bad "Guest masih lihat email pelanggan"; else ok "Guest tidak lihat data pribadi"; fi
 
 # ---- 10. Kontras --rust & --muted sudah diperbaiki di CSS ----
-CSS=$(curl -s -m 8 "$BASE/assets/$(curl -s -m 8 "$BASE/admin-orders.html" | grep -oE 'store-[A-Za-z0-9_-]+\.css' | head -1)")
+CSS=$(curl -s -m 8 "$BASE/assets/$(curl -s -m 8 "$BASE/admin/pesanan" | grep -oE 'store-[A-Za-z0-9_-]+\.css' | head -1)")
 if echo "$CSS" | grep -q '#a8562f'; then ok "CSS memakai --rust baru (#a8562f)"; else bad "CSS masih --rust lama"; fi
 if echo "$CSS" | grep -q '#5c6a6a'; then ok "CSS memakai --muted baru (#5c6a6a)"; else bad "CSS masih --muted lama"; fi
 

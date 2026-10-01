@@ -4,6 +4,20 @@ import { fileURLToPath } from 'node:url'
 
 const root = path.dirname(fileURLToPath(import.meta.url))
 
+// Peta URL bersih → file, harus SAMA dengan PAGES di server/index.js.
+// Dipakai hanya saat `npm run dev` (Vite) supaya URL bersih tidak 404.
+const PAGES = {
+	'/katalog': 'shop.html',
+	'/produk': 'product.html',
+	'/keranjang': 'checkout.html',
+	'/akun': 'account.html',
+	'/akun/pesanan': 'account-orders.html',
+	'/akun/pesanan/lihat': 'account-order.html',
+	'/admin': 'admin.html',
+	'/admin/pesanan': 'admin-orders.html',
+	'/admin/produk': 'admin-products.html',
+}
+
 // https://vite.dev/config/
 export default defineConfig({
 	server: {
@@ -11,6 +25,18 @@ export default defineConfig({
 			'/api': 'http://localhost:8787',
 		},
 	},
+	plugins: [
+		{
+			name: 'clean-urls-dev',
+			configureServer(server) {
+				server.middlewares.use((req, _res, next) => {
+					const clean = req.url.split('?')[0]
+					if (PAGES[clean]) req.url = `/${PAGES[clean]}${req.url.slice(clean.length)}`
+					next()
+				})
+			},
+		},
+	],
 	build: {
 		rollupOptions: {
 			input: {

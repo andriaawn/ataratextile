@@ -87,6 +87,13 @@ dikelola dari UI — tanpa mengubah backend yang sudah matang dan aman.
 
 ## File / task breakdown (per fase)
 
+> ⚠️ **URL publik sudah bersih (tanpa `.html`)** sejak `plans/0004-clean-urls.md`.
+> Halaman baru **wajib** didaftarkan di 3 tempat: `PAGES` di `server/index.js`,
+> `PAGES` di `vite.config.ts`, dan `build.rollupOptions.input`. URL yang dipakai:
+> `/admin/pelanggan`, `/admin/konten`, `/admin/pengaturan` — bukan `admin-*.html`.
+> Nama file di bawah ini adalah nama file fisik di disk, bukan URL publik.
+
+
 ### 🔴 FASE 1 — Admin Order (paling penting)
 - `admin-orders.html` (baru) — tabel order + filter + detail + ubah status + resi + catatan
 - `admin-orders.js` (baru)

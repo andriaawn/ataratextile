@@ -14,7 +14,7 @@ async function initAdminProducts() {
     renderProducts(catalog.products);
     bindProductForm();
     bindCatalogForms();
-  } catch (error) { message(error.message, 'error'); const link = document.createElement('a'); link.className = 'shop-btn'; link.href = '/admin.html?next=%2Fadmin-products.html'; link.textContent = 'Login admin'; document.querySelector('#products-auth').appendChild(link); }
+  } catch (error) { message(error.message, 'error'); const link = document.createElement('a'); link.className = 'shop-btn'; link.href = '/admin?next=%2Fadmin%2Fproduk'; link.textContent = 'Login admin'; document.querySelector('#products-auth').appendChild(link); }
 }
 function renderProducts(products) {
   const rows = document.querySelector('#product-rows');

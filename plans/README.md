@@ -33,3 +33,4 @@ di framework, atau ikuti struktur plan yang sudah ada di folder ini:
 | 0001 | [Adopsi framework](0001-adopt-framework.md) | ✅ done 2026-09-30 |
 | 0002 | [Roadmap CMS & Commerce](0002-cms-roadmap.md) | 🚧 berjalan — Fase 1 ✅, Fase 2 berikutnya |
 | 0003 | [Fase 1: Admin Order + kontras](0003-fase1-admin-order.md) | ✅ done 2026-09-30 |
+| 0004 | [URL bersih (hapus `.html`)](0004-clean-urls.md) | ✅ done 2026-09-30 |

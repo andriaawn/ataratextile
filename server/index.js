@@ -170,7 +170,45 @@ app.get('/api/admin/dashboard', requireAuth, requireRole('admin'), (_req, res) =
 app.get('/api/admin/orders', requireAuth, requireRole('admin'), (_req, res) => res.json({ orders: all('SELECT o.*,c.name AS customer_name,c.email,p.status AS payment_status FROM orders o LEFT JOIN customers c ON c.id=o.customer_id LEFT JOIN payments p ON p.order_id=o.id ORDER BY o.created_at DESC') }));
 app.post('/api/samples', (req, res) => { const { customer_name, email, phone, product_id, color, quantity = 1, address } = req.body; if (!customer_name || !email || !phone || !product_id || !color || !address) return res.status(400).json({ error: 'Data sample belum lengkap' }); const sample = run('INSERT INTO sample_requests (customer_name,email,phone,product_id,color,quantity,address) VALUES (?,?,?,?,?,?,?)', [customer_name, email, phone, product_id, color, quantity, address]); notifications.emit('sample_request', { id: sample.id, email }); res.status(201).json({ id: sample.id, status: 'requested' }); });
 
-app.use(express.static(path.join(here, '..', 'dist')));
+// ---- URL bersih: tabel route tipis ----
+// Server tidak punya router halaman; ini satu-satunya tempat yang memetakan URL publik
+// ke file di dist/. URL lama (.html) di-301 supaya bookmark lama tetap hidup.
+// Detail di docs/architecture.md §"URL". Plan: plans/0004-clean-urls.md.
+const PAGES = {
+  '/': 'index.html',
+  '/katalog': 'shop.html',
+  '/produk': 'product.html',
+  '/keranjang': 'checkout.html',
+  '/akun': 'account.html',
+  '/akun/pesanan': 'account-orders.html',
+  '/akun/pesanan/lihat': 'account-order.html',
+  '/admin': 'admin.html',
+  '/admin/pesanan': 'admin-orders.html',
+  '/admin/produk': 'admin-products.html',
+};
+const LEGACY = Object.fromEntries(Object.entries(PAGES).map(([clean, file]) => [`/${file}`, clean]));
+
+// /index.html dan /index → / (perlakuan khusus, bukan di tabel)
+app.get('/index.html', (req, res) => res.redirect(301, '/'));
+app.get('/index', (req, res) => res.redirect(301, '/'));
+
+// URL .html lama → URL bersih, query string dipertahankan
+for (const [legacy, clean] of Object.entries(LEGACY)) {
+  if (legacy === '/index.html') continue;
+  app.get(legacy, (req, res) => {
+    const query = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
+    res.redirect(301, `${clean}${query}`);
+  });
+}
+
+// URL bersih → kirim file dari dist/
+const distDir = path.join(here, '..', 'dist');
+for (const [clean, file] of Object.entries(PAGES)) {
+  if (clean === '/') continue;
+  app.get(clean, (_req, res) => res.sendFile(path.join(distDir, file)));
+}
+
+app.use(express.static(distDir));
 app.use(express.static(path.join(here, '..', 'public')));
 app.use((error, _req, res, _next) => { console.error(error); res.status(error.status || 500).json({ error: 'Terjadi kesalahan pada server' }); });
 app.listen(port, () => console.log(`Atandra commerce running at http://localhost:${port}`));

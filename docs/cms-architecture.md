@@ -33,12 +33,12 @@ Katalog) lalu 4–7.
 ## 2. Struktur menu (6 item, maksimum yang sehat)
 
 ```
-▸ Dashboard        /admin.html              ringkasan harian
-▸ Pesanan ①        /admin-orders.html       kerja utama sehari-hari   ✅ FASE 1 SELESAI
-▸ Produk           /admin-products.html     katalog (sudah ada, diperbaiki di FASE 2)
-▸ Pelanggan        /admin-customers.html    FASE 4
-▸ Konten           /admin-content.html      FASE 3
-▸ Pengaturan       /admin-settings.html     FASE 5
+▸ Dashboard        /admin                   ringkasan harian
+▸ Pesanan ①        /admin/pesanan           kerja utama sehari-hari   ✅ FASE 1 SELESAI
+▸ Produk           /admin/produk            katalog (sudah ada, diperbaiki di FASE 2)
+▸ Pelanggan        /admin/pelanggan         FASE 4
+▸ Konten           /admin/konten            FASE 3
+▸ Pengaturan       /admin/pengaturan        FASE 5
 ```
 
 Badge angka di sidebar = jumlah yang butuh perhatian (order pending). Ini yang bikin
@@ -48,7 +48,7 @@ operator tahu "ada kerjaan" tanpa buka halaman.
 
 ## 3. Layar per modul
 
-### 3.1 Dashboard (`admin.html`) — ✅ ada, perlu dirapikan
+### 3.1 Dashboard (`/admin`) — ✅ ada, perlu dirapikan
 
 | Blok | Isi |
 |---|---|
@@ -60,7 +60,7 @@ operator tahu "ada kerjaan" tanpa buka halaman.
 **Aturan KPI:** setiap angka **wajib ada pembandingnya** (vs periode sebelumnya). Angka
 telanjang tanpa konteks tidak menjawab pertanyaan apa pun.
 
-### 3.2 Pesanan (`admin-orders.html`) — ✅ FASE 1 SELESAI (2026-09-30)
+### 3.2 Pesanan (`/admin/pesanan`) — ✅ FASE 1 SELESAI (2026-09-30)
 
 **Pertanyaan yang harus dijawab layar ini:** *"Pesanan mana yang perlu gw kerjakan
 sekarang?"*
@@ -85,7 +85,7 @@ sekarang?"*
 - **Filter + search wajib.** Tanpa ini, 100 order mustahil dikelola.
 - **Empty state jelas.** "Belum ada pesanan."
 
-### 3.3 Produk (`admin-products.html`) — ⚠️ ada, diperbaiki di FASE 2
+### 3.3 Produk (`/admin/produk`) — ⚠️ ada, diperbaiki di FASE 2
 
 Sudah punya: daftar produk, form produk, editor varian, editor harga bertingkat, stok.
 
@@ -102,7 +102,7 @@ Yang perlu ditambah:
 
 **Prinsip:** harga & stok di **varian**, bukan produk. Archive, jangan hapus.
 
-### 3.4 Pelanggan (`admin-customers.html`) — FASE 4
+### 3.4 Pelanggan (`/admin/pelanggan`) — FASE 4
 
 | Isi |
 |---|
@@ -112,7 +112,7 @@ Yang perlu ditambah:
 
 Butuh endpoint baru: `GET /api/admin/customers`.
 
-### 3.5 Konten (`admin-content.html`) — FASE 3
+### 3.5 Konten (`/admin/konten`) — FASE 3
 
 Field yang perlu bisa diedit (simpan di tabel `site_content` key-value, bukan hardcode):
 
@@ -130,7 +130,7 @@ Plus halaman statis: Tentang, Kebijakan Privasi, Syarat & Ketentuan, Cara Order.
 
 **Aturan:** ada **preview** sebelum simpan. Jangan biarkan operator menebak tampilannya.
 
-### 3.6 Pengaturan (`admin-settings.html`) — FASE 5
+### 3.6 Pengaturan (`/admin/pengaturan`) — FASE 5
 
 | Tab | Isi |
 |---|---|

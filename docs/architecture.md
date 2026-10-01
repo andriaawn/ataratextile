@@ -48,9 +48,34 @@ Tidak ada server frontend terpisah di production.
 | Database | SQLite (better-sqlite3-style helper) | `server/db.js` + `data/atandra.sqlite` |
 | Schema | SQL | `server/schema.sql` |
 | Provider (payment/shipping/notif) | Abstraksi manual | `server/services.js` |
-| Frontend | HTML + JS vanilla (nol framework) | `*.html`, `store.js`, `account.js`, `admin-products.js` |
+| Frontend | HTML + JS vanilla (nol framework) | `*.html`, `store.js`, `account.js`, `admin-products.js`, `admin-orders.js` |
 | Build | Vite (multi-page) | `vite.config.ts` |
 | Style | CSS tunggal, design token di `:root` | `store.css` |
+
+## 2b. URL publik
+
+URL publik **bersih (tanpa `.html`)**. Tidak ada router halaman — pemetaan URL → file ada
+di **satu tabel** `PAGES` di `server/index.js` (bagian bawah, sebelum `express.static`).
+URL lama `.html` di-**301** ke URL bersih (query string dipertahankan), jadi bookmark lama
+tetap hidup. Saat `npm run dev`, plugin `clean-urls-dev` di `vite.config.ts` melakukan
+rewrite yang sama supaya dev tidak 404.
+
+| URL | File |
+|---|---|
+| `/` | `index.html` |
+| `/katalog` | `shop.html` |
+| `/produk?slug=<slug>` | `product.html` |
+| `/keranjang` | `checkout.html` |
+| `/akun` | `account.html` |
+| `/akun/pesanan` | `account-orders.html` |
+| `/akun/pesanan/lihat?id=<no>` | `account-order.html` |
+| `/admin` | `admin.html` |
+| `/admin/pesanan` | `admin-orders.html` |
+| `/admin/produk` | `admin-products.html` |
+
+**Aturan:** kalau menambah halaman, daftarkan di **tiga** tempat — `PAGES` di
+`server/index.js`, `PAGES` di `vite.config.ts` (untuk dev), dan `build.rollupOptions.input`
+(untuk build). Detail: `plans/0004-clean-urls.md`.
 
 ## 3. Model data (ringkas)
 
