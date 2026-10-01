@@ -13,6 +13,72 @@ async function loadCatalog() {
   document.querySelector('#category-select').innerHTML = categories.categories.map((item) => `<option value="${Number(item.id)}">${esc(item.name)}</option>`).join('');
   document.querySelector('#color-select').innerHTML = colors.colors.map((item) => `<option value="${Number(item.id)}">${esc(item.name)} (${esc(item.code)})</option>`).join('');
   renderProducts(catalog.products);
+  await renderCatalogLists();
+}
+
+// ---- Daftar kategori & warna dengan jumlah pemakai (plan 0006, fase 2C) ----
+// Tombol hapus disabled kalau masih dipakai, dan angkanya ditampilkan. Server
+// tetap menolak (409) — UI hanya memberi tahu lebih awal, bukan menggantikan.
+async function renderCatalogLists() {
+  const data = await api('/admin/catalog');
+  const row = (item, kind, label, sub) => `<li class="catalog-row" data-row="${kind}-${Number(item.id)}">
+    <span><b>${esc(label)}</b><small>${esc(sub)}</small></span>
+    <span class="catalog-usage ${item.usage_count ? 'is-used' : ''}">${item.usage_count ? `${item.usage_count} dipakai` : 'tidak dipakai'}</span>
+    <span class="row-actions">
+      <button class="btn" data-edit-${kind}="${Number(item.id)}">Ubah</button>
+      <button class="btn btn--danger" data-del-${kind}="${Number(item.id)}"${item.usage_count ? ' disabled title="Masih dipakai"' : ''}>Hapus</button>
+    </span></li>`;
+  document.querySelector('#category-list').innerHTML = data.categories.map((item) => row(item, 'category', item.name, `/${item.slug}`)).join('') || '<li class="catalog-empty">Belum ada kategori.</li>';
+  document.querySelector('#color-list').innerHTML = data.colors.map((item) => row(item, 'color', item.name, item.code)).join('') || '<li class="catalog-empty">Belum ada warna.</li>';
+
+  document.querySelectorAll('[data-edit-category]').forEach((button) => button.onclick = () => startCatalogEdit('category', button.dataset.editCategory));
+  document.querySelectorAll('[data-edit-color]').forEach((button) => button.onclick = () => startCatalogEdit('color', button.dataset.editColor));
+  document.querySelectorAll('[data-del-category]').forEach((button) => button.onclick = () => removeCatalog('category', button.dataset.delCategory));
+  document.querySelectorAll('[data-del-color]').forEach((button) => button.onclick = () => removeCatalog('color', button.dataset.delColor));
+}
+
+// Ubah LANGSUNG DI BARIS (bukan dialog browser) — konsisten dengan sisa CMS,
+// dan admin tetap bisa lihat berapa varian/produk yang memakai saat mengetik.
+function startCatalogEdit(kind, id) {
+  const li = document.querySelector(`[data-row="${kind}-${id}"]`);
+  if (!li || li.dataset.editing) return;
+  li.dataset.editing = '1';
+  const isCategory = kind === 'category';
+  const name = li.querySelector('b').textContent;
+  const extra = li.querySelector('small').textContent.replace(/^\//, '');
+  li.innerHTML = `<span class="catalog-edit">
+      <input data-edit-name value="${esc(name)}" aria-label="${isCategory ? 'Nama kategori' : 'Nama warna'}">
+      <input data-edit-extra value="${esc(extra)}" aria-label="${isCategory ? 'Slug' : 'Kode warna'}">
+    </span>
+    <span class="row-actions">
+      <button class="btn btn--primary" data-save>Simpan</button>
+      <button class="btn" data-cancel>Batal</button>
+    </span>`;
+  const input = li.querySelector('[data-edit-name]');
+  input.focus();
+  li.querySelector('[data-cancel]').onclick = () => renderCatalogLists();
+  li.querySelector('[data-save]').onclick = async () => {
+    const path = isCategory ? `/admin/categories/${id}` : `/admin/colors/${id}`;
+    const body = isCategory
+      ? { name: li.querySelector('[data-edit-name]').value, slug: li.querySelector('[data-edit-extra]').value }
+      : { name: li.querySelector('[data-edit-name]').value, code: li.querySelector('[data-edit-extra]').value };
+    if (!body.name.trim() || !(isCategory ? body.slug : body.code).trim()) return message('Nama dan slug/kode tidak boleh kosong.', 'error');
+    try {
+      await api(path, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      message(`${isCategory ? 'Kategori' : 'Warna'} berhasil diubah.`, 'success');
+      await loadCatalog();
+    } catch (error) { message(error.message, 'error'); }
+  };
+}
+
+async function removeCatalog(kind, id) {
+  const isCategory = kind === 'category';
+  const path = isCategory ? `/admin/categories/${id}` : `/admin/colors/${id}`;
+  try {
+    await api(path, { method: 'DELETE' });
+    message(`${isCategory ? 'Kategori' : 'Warna'} dihapus.`, 'success');
+    await loadCatalog();
+  } catch (error) { message(error.message, 'error'); }
 }
 
 function showWorkspace() {
@@ -127,7 +193,7 @@ function resetImagePreview() {
   if (preview) preview.hidden = true;
   if (input) input.value = '';
 }
-function bindCatalogForms() { document.querySelector('#category-form').addEventListener('submit', async (event) => { event.preventDefault(); try { await api('/admin/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget))) }); message('Kategori berhasil ditambahkan.', 'success'); } catch (error) { message(error.message, 'error'); } }); document.querySelector('#color-form').addEventListener('submit', async (event) => { event.preventDefault(); try { await api('/admin/colors', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget))) }); message('Warna berhasil ditambahkan.', 'success'); } catch (error) { message(error.message, 'error'); } }); }
+function bindCatalogForms() { document.querySelector('#category-form').addEventListener('submit', async (event) => { event.preventDefault(); try { await api('/admin/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget))) }); message('Kategori berhasil ditambahkan.', 'success'); event.currentTarget.reset(); await loadCatalog(); } catch (error) { message(error.message, 'error'); } }); document.querySelector('#color-form').addEventListener('submit', async (event) => { event.preventDefault(); try { await api('/admin/colors', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget))) }); message('Warna berhasil ditambahkan.', 'success'); event.currentTarget.reset(); await loadCatalog(); } catch (error) { message(error.message, 'error'); } }); }
 async function openVariants(productId, product) { const panel = document.querySelector('#variant-panel'); panel.hidden = false; document.querySelector('#variant-title').textContent = `Varian · ${product.name}`; const draw = async () => { const data = await api(`/admin/products/${productId}/variants`); document.querySelector('#variant-rows').innerHTML = data.variants.map((variant) => `<div class="variant-row"><label class="bulk-check"><input type="checkbox" data-pick="${Number(variant.id)}" checked aria-label="Pilih ${esc(variant.color)}"></label><span><b>${esc(variant.color)}</b><small>${esc(variant.sku)}</small></span><input data-price="${Number(variant.id)}" value="${esc(variant.price)}" type="number"><input data-wholesale="${Number(variant.id)}" value="${esc(variant.wholesale_price)}" type="number"><input data-stock="${Number(variant.id)}" value="${esc(variant.stock)}" type="number"><button class="btn" data-save-variant="${Number(variant.id)}">Simpan</button></div>`).join('') || '<div class="empty-state"><b>Belum ada varian</b>Tambahkan varian pertama lewat formulir di atas.</div>'; document.querySelectorAll('[data-save-variant]').forEach((button) => button.addEventListener('click', async () => { const id = button.dataset.saveVariant; await api(`/admin/variants/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ price: Number(document.querySelector(`[data-price="${id}"]`).value), wholesale_price: Number(document.querySelector(`[data-wholesale="${id}"]`).value) }) }); await api(`/admin/inventory/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stock: Number(document.querySelector(`[data-stock="${id}"]`).value) }) }); message('Varian dan stok tersimpan.', 'success'); })); }; await draw(); document.querySelector('#variant-form').onsubmit = async (event) => { event.preventDefault(); const data = Object.fromEntries(new FormData(event.currentTarget)); data.color_id = Number(data.color_id); data.price = Number(data.price); data.wholesale_price = Number(data.wholesale_price); data.stock = Number(data.stock); await api(`/admin/products/${productId}/variants`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); event.currentTarget.reset(); await draw(); }; document.querySelector('#pricing-form').onsubmit = async (event) => { event.preventDefault(); const data = Object.fromEntries(new FormData(event.currentTarget)); const current = await api(`/products/${product.slug}`); current.product.tiers.push({ min_quantity: Number(data.min_quantity), max_quantity: data.max_quantity ? Number(data.max_quantity) : null, price: Number(data.price), label: `${data.min_quantity}+ roll` }); await api(`/admin/products/${productId}/pricing`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tiers: current.product.tiers }) }); message('Pricing tier tersimpan.', 'success'); };
  bindBulkPrice(productId, draw);
  bindGallery(productId, draw);

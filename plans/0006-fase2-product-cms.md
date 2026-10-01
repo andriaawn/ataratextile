@@ -1,6 +1,6 @@
 # 0006 — Fase 2: Product CMS
 
-Status: 🚧 2A ✅ & 2B ✅ SELESAI & LIVE · 2C–2E belum
+Status: 🚧 2A ✅ · 2B ✅ · 2C ✅ SELESAI & LIVE · 2D–2E belum
 Tanggal: 2026-10-01
 Turunan dari: [`0002-cms-roadmap.md`](0002-cms-roadmap.md) — bagian "FASE 2 — Product CMS"
 Dokumen pendukung: [`docs/cms-architecture.md`](../docs/cms-architecture.md),
@@ -14,9 +14,23 @@ Dokumen pendukung: [`docs/cms-architecture.md`](../docs/cms-architecture.md),
 |---|---|---|
 | **2A — Upload gambar** | ✅ **SELESAI & LIVE** | `tests/uploads.test.sh` **38/38** · negative control GAGAL 3 |
 | **2B — Bulk edit harga** | ✅ **SELESAI & LIVE** | `tests/bulk-price.test.sh` **36/36** · negative control GAGAL 7 |
-| 2C — Kelola kategori & warna | ⬜ belum | — |
+| **2C — Kelola kategori & warna** | ✅ **SELESAI & LIVE** | `tests/catalog.test.sh` **37/37** · negative control GAGAL 10 |
 | 2D — Badge stok menipis | ⬜ belum | — |
 | 2E — Rapikan halaman Produk | ⬜ belum | — |
+
+**2C yang terpasang:**
+- `GET /api/admin/catalog` — kategori & warna **+ `usage_count`** (jumlah produk/varian
+  yang memakai). Satu request, bukan dua daftar + hitung di browser.
+- `PATCH /api/admin/colors/:id` (baru) · `DELETE /api/admin/categories/:id` ·
+  `DELETE /api/admin/colors/:id`.
+- **Hapus DITOLAK 409 kalau masih dipakai** — pesannya menyebut jumlahnya
+  ("masih dipakai 11 produk"). Ini bukan kehati-hatian berlebihan: `products.category_id`
+  NOT NULL tanpa `ON DELETE`, jadi menghapus kategori terpakai membuat **seluruh katalog
+  kosong** (terbukti di negative control: produk publik 11 → 0).
+- `PATCH /api/admin/categories/:id` sekarang balikin **409** kalau slug bentrok
+  (dulu error-nya tidak tertangkap → 500).
+- `admin-products.html/js` — daftar kategori & warna: jumlah pemakai, tombol Ubah
+  (edit langsung di baris, bukan dialog browser), tombol Hapus **disabled** kalau dipakai.
 
 **2B yang terpasang:**
 - `POST /api/admin/variants/bulk-price` — `{ variant_ids, mode, value, field, dry_run }`.
@@ -187,8 +201,14 @@ Setiap bagian = **satu commit yang bisa direview**, dengan test + bukti sendiri.
 - [x] Test **idempoten** — 2× berturut-turut di DB yang sama, hasil sama (117/117)
 - [x] DB produksi tidak tersentuh (11 produk · 44 varian · 0 order)
 
-**2C–2E (belum):**
-- [ ] Hapus kategori/warna yang masih dipakai → **409**, tidak merusak data
+**2C (selesai):**
+- [x] Hapus kategori/warna yang masih dipakai → **409**, tidak merusak data (37/37)
+- [x] Negative control GAGAL 10 cek — tanpa cek pemakai, **seluruh katalog kosong** (11 → 0 produk)
+- [x] `PATCH` warna (baru); `PATCH` kategori slug bentrok → 409 (dulu 500)
+- [x] `usage_count` ditampilkan di UI; tombol Hapus disabled kalau dipakai
+- [x] Test idempoten (154/154 dua kali berturut-turut)
+
+**2D–2E (belum):**
 - [ ] Badge stok menipis muncul kalau `available_stock <= threshold`
 - [ ] Nol error console di browser; bisa dipakai di 360px
 
@@ -225,6 +245,19 @@ Setiap bagian = **satu commit yang bisa direview**, dengan test + bukti sendiri.
    dan menggeser asumsi test lain. `draft` tetap bisa dites (endpoint admin tidak filter status).
 10. **Negative control wajib: rusak → restart → test.** Kalau kode rusak crash saat start,
     semua hasil jadi `000` (koneksi gagal) dan itu **bukan** bukti — test tidak pernah jalan.
+
+## Pelajaran dari 2C (jangan diulang)
+
+11. **Hapus baris yang direferensikan `NOT NULL` tanpa `ON DELETE` = katalog bisa hilang.**
+    `products.category_id` NOT NULL; menghapus kategori yang dipakai tidak error di SQLite
+    (FK tidak dipaksa), tapi `JOIN categories` di `productSelect` langsung membuang **semua**
+    produk → `/api/products` balikin 0. Selalu hitung pemakai SEBELUM hapus.
+12. **`PATCH` yang bisa melanggar UNIQUE wajib dibungkus `try/catch`.** Versi lama
+    `PATCH /admin/categories/:id` tidak menangkap error → slug bentrok = **500**, bukan 409.
+13. **Jangan pakai `window.prompt`/`confirm` di CMS.** Itu keluar dari design system,
+    tidak bisa ditata, dan memblokir. Edit langsung di baris.
+14. **Satu endpoint ringkasan (`/admin/catalog` + `usage_count`) lebih baik daripada dua
+    daftar + hitung di browser** — hitungannya ikut transaksi yang sama, jadi tidak basi.
 
 ---
 

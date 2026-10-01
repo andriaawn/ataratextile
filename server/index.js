@@ -155,7 +155,44 @@ app.get('/api/admin/categories', ...adminOnly, (_req, res) => res.json({ categor
 app.get('/api/admin/colors', ...adminOnly, (_req, res) => res.json({ colors: all('SELECT * FROM colors ORDER BY name') }));
 app.post('/api/admin/colors', ...adminOnly, (req, res) => { const { name, code } = req.body || {}; if (!name || !code) return res.status(400).json({ error: 'Nama dan kode warna wajib diisi' }); try { const color = run('INSERT INTO colors (name,code) VALUES (?,?)', [name.trim(), code.trim().toUpperCase()]); res.status(201).json({ color: one('SELECT * FROM colors WHERE id=?', [color.id]) }); } catch { res.status(409).json({ error: 'Kode warna sudah digunakan' }); } });
 app.post('/api/admin/categories', ...adminOnly, (req, res) => { const { name, slug } = req.body || {}; if (!name || !slug) return res.status(400).json({ error: 'Nama dan slug kategori wajib diisi' }); try { const category = run('INSERT INTO categories (name,slug) VALUES (?,?)', [name.trim(), slug.trim().toLowerCase()]); res.status(201).json({ category: one('SELECT * FROM categories WHERE id=?', [category.id]) }); } catch (error) { res.status(409).json({ error: 'Slug kategori sudah digunakan' }); } });
-app.patch('/api/admin/categories/:id', ...adminOnly, (req, res) => { const { name, slug } = req.body || {}; if (!name || !slug) return res.status(400).json({ error: 'Nama dan slug kategori wajib diisi' }); run('UPDATE categories SET name=?,slug=? WHERE id=?', [name.trim(), slug.trim().toLowerCase(), req.params.id]); res.json({ ok: true }); });
+app.patch('/api/admin/categories/:id', ...adminOnly, (req, res) => { const { name, slug } = req.body || {}; if (!name || !slug) return res.status(400).json({ error: 'Nama dan slug kategori wajib diisi' }); try { run('UPDATE categories SET name=?,slug=? WHERE id=?', [name.trim(), slug.trim().toLowerCase(), req.params.id]); res.json({ ok: true }); } catch { res.status(409).json({ error: 'Slug kategori sudah digunakan' }); } });
+
+// ---- Kelola kategori & warna (plan 0006, fase 2C) ----
+// Hapus DITOLAK kalau masih dipakai. Kategori dipakai products.category_id
+// (NOT NULL, tanpa ON DELETE), warna dipakai product_variants.color_id. Hapus
+// paksa akan meninggalkan produk/varian dengan rujukan yang tidak ada — lebih
+// baik tolak dan beri tahu berapa yang memakai daripada data jadi yatim.
+//
+// Hitung pemakai dulu supaya pesan errornya berguna ("dipakai 11 produk"), dan
+// supaya admin bisa memutuskan: pindahkan dulu, baru hapus.
+app.get('/api/admin/catalog', ...adminOnly, (_req, res) => res.json({
+  categories: all(`SELECT c.*, COUNT(p.id) AS usage_count FROM categories c LEFT JOIN products p ON p.category_id=c.id GROUP BY c.id ORDER BY c.name`),
+  colors: all(`SELECT c.*, COUNT(v.id) AS usage_count FROM colors c LEFT JOIN product_variants v ON v.color_id=c.id GROUP BY c.id ORDER BY c.name`),
+}));
+
+app.patch('/api/admin/colors/:id', ...adminOnly, (req, res) => {
+  const { name, code } = req.body || {};
+  if (!name || !code) return res.status(400).json({ error: 'Nama dan kode warna wajib diisi' });
+  if (!one('SELECT id FROM colors WHERE id=?', [req.params.id])) return res.status(404).json({ error: 'Warna tidak ditemukan' });
+  try { run('UPDATE colors SET name=?,code=? WHERE id=?', [name.trim(), code.trim().toUpperCase(), req.params.id]); res.json({ ok: true }); }
+  catch { res.status(409).json({ error: 'Kode warna sudah digunakan' }); }
+});
+
+app.delete('/api/admin/categories/:id', ...adminOnly, (req, res) => {
+  if (!one('SELECT id FROM categories WHERE id=?', [req.params.id])) return res.status(404).json({ error: 'Kategori tidak ditemukan' });
+  const used = one('SELECT COUNT(*) AS value FROM products WHERE category_id=?', [req.params.id]).value;
+  if (used) return res.status(409).json({ error: `Kategori masih dipakai ${used} produk. Pindahkan produk itu dulu.`, usage_count: used });
+  run('DELETE FROM categories WHERE id=?', [req.params.id]);
+  res.json({ ok: true });
+});
+
+app.delete('/api/admin/colors/:id', ...adminOnly, (req, res) => {
+  if (!one('SELECT id FROM colors WHERE id=?', [req.params.id])) return res.status(404).json({ error: 'Warna tidak ditemukan' });
+  const used = one('SELECT COUNT(*) AS value FROM product_variants WHERE color_id=?', [req.params.id]).value;
+  if (used) return res.status(409).json({ error: `Warna masih dipakai ${used} varian. Pindahkan varian itu dulu.`, usage_count: used });
+  run('DELETE FROM colors WHERE id=?', [req.params.id]);
+  res.json({ ok: true });
+});
 app.get('/api/admin/products', ...adminOnly, (_req, res) => res.json({ products: all(`${productSelect} GROUP BY p.id ORDER BY p.created_at DESC`).map(serializeProduct) }));
 app.post('/api/admin/products', ...adminOnly, (req, res) => { const { category_id, name, slug, sku, description, material, construction, gsm, width, weight_per_yard, recommended_usage, moq = 1, sample_available = 1, status = 'draft', featured = 0, bestseller = 0, image = '/img/fabric-hero.png' } = req.body || {}; if (!category_id || !name || !slug || !sku || !description || !material || !construction || !gsm || !width || !weight_per_yard || !recommended_usage) return res.status(400).json({ error: 'Field produk belum lengkap' }); try { const product = run('INSERT INTO products (category_id,name,slug,sku,description,material,construction,gsm,width,weight_per_yard,recommended_usage,moq,sample_available,status,featured,bestseller) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [category_id, name.trim(), slug.trim(), sku.trim(), description, material, construction, gsm, width, weight_per_yard, recommended_usage, moq, sample_available ? 1 : 0, status, featured ? 1 : 0, bestseller ? 1 : 0]); run('INSERT INTO product_images (product_id,url,alt,sort_order) VALUES (?,?,?,0)', [product.id, image, name]); res.status(201).json({ product: one('SELECT * FROM products WHERE id=?', [product.id]) }); } catch (error) { res.status(409).json({ error: 'Slug atau SKU produk sudah digunakan' }); } });
 app.patch('/api/admin/products/:id', ...adminOnly, (req, res) => { const allowed = ['name', 'slug', 'sku', 'description', 'material', 'construction', 'gsm', 'width', 'weight_per_yard', 'recommended_usage', 'moq', 'sample_available', 'status', 'featured', 'bestseller', 'category_id']; const fields = allowed.filter((field) => req.body?.[field] !== undefined); if (!fields.length) return res.status(400).json({ error: 'Tidak ada field yang diubah' }); const values = fields.map((field) => req.body[field]); run(`UPDATE products SET ${fields.map((field) => `${field}=?`).join(',')},updated_at=CURRENT_TIMESTAMP WHERE id=?`, [...values, req.params.id]); res.json({ ok: true }); });

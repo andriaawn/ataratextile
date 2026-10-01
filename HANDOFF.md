@@ -48,10 +48,10 @@ log → commit**. Nol kode sebelum plan disetujui. Push butuh approval terpisah.
 
 - **Roadmap:** [`plans/ROADMAP.md`](plans/ROADMAP.md)
 - **Angka penting:** 11 produk · 44 varian · 1 kategori · 4 warna · **0 order** ·
-  1 akun admin · **43 endpoint API**
-- **Deploy terakhir:** 2026-10-01 — Fase 2B bulk ubah harga varian (`plans/0006`) live
+  1 akun admin · **52 endpoint API**
+- **Deploy terakhir:** 2026-10-01 — Fase 2C kelola kategori & warna (`plans/0006`) live
 - **Commit terakhir:** lihat `git log --oneline -5`
-- **Yang belum:** kelola kategori/warna lengkap, badge low-stock (2C–2E),
+- **Yang belum:** badge low-stock (2D), rapikan halaman Produk (2E),
   harga asli, editor konten, pelanggan, pembayaran
 - **⚠️ Gambar upload TIDAK di-commit** (`public/uploads/` di-`.gitignore`). Backup lewat
   `bash scripts/backup-uploads.sh` (simpan 7 terbaru). Tanpa ini, gambar hilang kalau

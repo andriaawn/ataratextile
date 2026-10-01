@@ -69,7 +69,11 @@ Semua body request/response = JSON. Autentikasi pakai cookie `atandra_session`
 | GET | `/admin/categories` | 🔒 | Kategori (termasuk non-aktif) |
 | POST | `/admin/categories` | 🔒 | Body: `name, slug` |
 | PATCH | `/admin/categories/:id` | 🔒 | Body: `name, slug` |
-| GET | `/admin/colors` | 🔒 | Semua warna |
+| GET | `/admin/colors` | 🔒 | Daftar warna |
+| PATCH | `/admin/colors/:id` | 🔒 | Ubah `name, code`. Kode bentrok → 409, tidak ada → 404 |
+| GET | `/admin/catalog` | 🔒 | Kategori & warna **+ `usage_count`** (jumlah produk/varian yang memakai) |
+| DELETE | `/admin/categories/:id` | 🔒 | Hapus kategori. **409 kalau masih dipakai** produk (`usage_count` ikut dikirim), 404 kalau tidak ada |
+| DELETE | `/admin/colors/:id` | 🔒 | Hapus warna. **409 kalau masih dipakai** varian, 404 kalau tidak ada |
 | POST | `/admin/colors` | 🔒 | Body: `name, code` (code unik) |
 | GET | `/admin/products` | 🔒 | Semua produk (termasuk draft/archived) |
 | POST | `/admin/products` | 🔒 | Buat produk. Field wajib: `category_id, name, slug, sku, description, material, construction, gsm, width, weight_per_yard, recommended_usage` |
