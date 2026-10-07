@@ -406,6 +406,9 @@ app.patch('/api/admin/products/:id/images/:imageId/primary', ...adminOnly, (req,
 
 app.get('/api/admin/dashboard', requireAuth, requireRole('admin'), (_req, res) => res.json({ sales: one("SELECT COALESCE(SUM(total),0) AS value FROM orders WHERE status NOT IN ('cancelled','pending_payment')").value, orders: one('SELECT COUNT(*) AS value FROM orders').value, pendingPayments: one("SELECT COUNT(*) AS value FROM payments WHERE status='pending'").value, lowStock: all('SELECT v.sku,p.name,c.name AS color,inv.stock-inv.reserved_stock AS available_stock FROM inventory inv JOIN product_variants v ON v.id=inv.variant_id JOIN products p ON p.id=v.product_id JOIN colors c ON c.id=v.color_id WHERE inv.stock-inv.reserved_stock<=inv.low_stock_threshold').length, samples: one("SELECT COUNT(*) AS value FROM sample_requests WHERE status='requested'").value }));
 app.get('/api/admin/orders', requireAuth, requireRole('admin'), (_req, res) => res.json({ orders: all('SELECT o.*,c.name AS customer_name,c.email,p.status AS payment_status FROM orders o LEFT JOIN customers c ON c.id=o.customer_id LEFT JOIN payments p ON p.order_id=o.id ORDER BY o.created_at DESC') }));
+// ---- Sample request (admin) ----
+app.get('/api/admin/samples', ...adminOnly, (_req, res) => res.json({ samples: all("SELECT s.*,p.name AS product_name,p.slug AS product_slug FROM sample_requests s LEFT JOIN products p ON p.id=s.product_id ORDER BY s.created_at DESC") }));
+app.patch('/api/admin/samples/:id', ...adminOnly, (req, res) => { const statuses = ['requested', 'contacted', 'sent', 'rejected']; const { status } = req.body || {}; if (!statuses.includes(status)) return res.status(400).json({ error: 'Status sample tidak valid' }); const exists = one('SELECT id FROM sample_requests WHERE id=?', [req.params.id]); if (!exists) return res.status(404).json({ error: 'Sample tidak ditemukan' }); run('UPDATE sample_requests SET status=? WHERE id=?', [status, req.params.id]); res.json({ ok: true }); });
 app.post('/api/samples', (req, res) => { const { customer_name, email, phone, product_id, color, quantity = 1, address } = req.body; if (!customer_name || !email || !phone || !product_id || !color || !address) return res.status(400).json({ error: 'Data sample belum lengkap' }); const sample = run('INSERT INTO sample_requests (customer_name,email,phone,product_id,color,quantity,address) VALUES (?,?,?,?,?,?,?)', [customer_name, email, phone, product_id, color, quantity, address]); notifications.emit('sample_request', { id: sample.id, email }); res.status(201).json({ id: sample.id, status: 'requested' }); });
 
 // ---- URL bersih: tabel route tipis ----
@@ -423,6 +426,7 @@ const PAGES = {
   '/admin': 'admin.html',
   '/admin/pesanan': 'admin-orders.html',
   '/admin/produk': 'admin-products.html',
+  '/admin/sample': 'admin-samples.html',
 };
 const LEGACY = Object.fromEntries(Object.entries(PAGES).map(([clean, file]) => [`/${file}`, clean]));
 

@@ -16,6 +16,7 @@ const PAGES = {
 	'/admin': 'admin.html',
 	'/admin/pesanan': 'admin-orders.html',
 	'/admin/produk': 'admin-products.html',
+	'/admin/sample': 'admin-samples.html',
 }
 
 // https://vite.dev/config/
@@ -47,6 +48,7 @@ export default defineConfig({
 				admin: path.resolve(root, 'admin.html'),
 				adminOrders: path.resolve(root, 'admin-orders.html'),
 				adminProducts: path.resolve(root, 'admin-products.html'),
+				adminSamples: path.resolve(root, 'admin-samples.html'),
 				account: path.resolve(root, 'account.html'),
 				accountOrders: path.resolve(root, 'account-orders.html'),
 				accountOrder: path.resolve(root, 'account-order.html'),

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sample — Admin Atandra</title>
+<link rel="stylesheet" href="/store.css">
+</head>
+<body class="admin">
+<header class="admin-nav">
+  <div class="store-wrap store-nav">
+    <a class="store-brand" href="/admin">ATANDRA <small>COMMERCE ADMIN</small></a>
+    <a href="/katalog">Lihat storefront ↗</a>
+  </div>
+</header>
+
+<main class="store-wrap admin-layout">
+  <aside class="admin-side">
+    <a href="/admin">Dashboard</a>
+    <a href="/admin/pesanan">Pesanan</a>
+    <a href="/admin/produk">Produk</a>
+    <a class="active" href="/admin/sample">Sample</a>
+  </aside>
+
+  <section class="admin-main">
+
+    <div id="samples-loading" class="form-panel">
+      <div class="skeleton" style="width:40%;margin-bottom:12px"></div>
+      <div class="skeleton" style="width:80%"></div>
+    </div>
+
+    <div id="samples-auth" class="form-panel" hidden>
+      <div class="eyebrow">Area terbatas</div>
+      <h1>Akses admin</h1>
+      <p>Login dengan akun admin untuk melihat permintaan sample.</p>
+      <div class="field-grid">
+        <div class="field"><label for="admin-email">Email</label><input id="admin-email" type="email" autocomplete="email"></div>
+        <div class="field"><label for="admin-password">Password</label><input id="admin-password" type="password" autocomplete="current-password"></div>
+      </div>
+      <button class="btn btn--primary" id="admin-login">Login admin</button>
+      <p id="samples-auth-message" class="notice" hidden></p>
+    </div>
+
+    <div id="samples-workspace" class="admin-stack" hidden>
+      <div class="page-head">
+        <div>
+          <div class="eyebrow">Operasional</div>
+          <h1>Permintaan sample</h1>
+          <p>Permintaan contoh kain dari storefront. Hubungi calon pembeli, lalu tandai perkembangannya.</p>
+        </div>
+        <button class="btn" id="samples-refresh">Muat ulang</button>
+      </div>
+
+      <p id="samples-message" class="notice" hidden></p>
+      <div class="kpi-strip" id="sample-kpis"></div>
+      <div id="status-chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Nama</th>
+              <th>Kontak</th>
+              <th>Produk</th>
+              <th>Warna</th>
+              <th class="num">Qty</th>
+              <th>Status</th>
+              <th>Ubah status</th>
+            </tr>
+          </thead>
+          <tbody id="sample-rows"></tbody>
+        </table>
+      </div>
+      <p class="sub" id="samples-count" style="color:var(--muted);font-size:12px;margin:0"></p>
+    </div>
+  </section>
+</main>
+
+<div id="toasts" aria-live="polite"></div>
+
+<script type="module" src="/admin-samples.js"></script>
+<script type="module">window.initAdminSamples()</script>
+</body>
+</html>
