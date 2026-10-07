@@ -13,8 +13,49 @@ function categoryFor(gsm) { return gsm <= 135 ? 'light' : gsm <= 160 ? 'medium' 
 function productCard(product) { return `<article class="shop-card"><a href="/produk?slug=${encodeURIComponent(product.slug)}"><img src="${esc(asset(product.image))}" alt="${esc(product.name)}" loading="lazy"></a><div class="shop-card-body"><span class="eyebrow">${esc(product.gsm)} GSM · ${esc(product.category_name)}</span><h2>${esc(product.name)}</h2><p>${esc(product.recommended_usage)}</p><div class="shop-meta"><span>${esc(product.width)}</span><span>${esc(product.available_stock)} tersedia</span></div><div class="shop-card-actions"><b class="price">Mulai ${money(825000 + product.gsm * 1000)}</b><a class="shop-btn" href="/produk?slug=${encodeURIComponent(product.slug)}">Lihat detail</a></div></div></article>`; }
 async function initShop() { updateCartCount(); const grid = document.querySelector('#shop-grid'); let products = []; let active = 'all'; const render = () => { const query = document.querySelector('#search').value.toLowerCase(); const visible = products.filter((product) => (active === 'all' || categoryFor(product.gsm) === active) && `${product.name} ${product.sku} ${product.material}`.toLowerCase().includes(query)); grid.innerHTML = visible.length ? visible.map(productCard).join('') : '<div class="empty">Produk tidak ditemukan.</div>'; }; try { products = (await api('/products')).products; render(); } catch (error) { grid.innerHTML = `<div class="empty">${esc(error.message)}</div>`; } document.querySelector('#search').addEventListener('input', render); document.querySelectorAll('[data-filter]').forEach((button) => button.addEventListener('click', () => { document.querySelectorAll('[data-filter]').forEach((item) => item.classList.remove('active')); button.classList.add('active'); active = button.dataset.filter; render(); })); }
 async function initProduct() { updateCartCount(); const root = document.querySelector('#product-page'); try { const slug = new URLSearchParams(location.search).get('slug'); const { product } = await api(`/products/${encodeURIComponent(slug)}`); let selected = product.variants[0]; root.innerHTML = `<div class="product-layout"><div class="product-gallery"><img id="product-main" src="${esc(asset(product.image))}" alt="${esc(product.name)}">${(product.images || []).length > 1 ? `<div class="thumb-row">${product.images.map((img, index) => `<button class="thumb ${index === 0 ? 'active' : ''}" data-img="${esc(asset(img.url))}" aria-label="Gambar ${index + 1}"><img src="${esc(asset(img.url))}" alt="${esc(img.alt || product.name)}" loading="lazy"></button>`).join('')}</div>` : ''}</div><section class="product-info"><div class="eyebrow">${esc(product.sku)}</div><h1>${esc(product.name)}</h1><p>${esc(product.description)}</p><div class="spec-grid"><div><small>GRAMASI</small><b>${esc(product.gsm)} g/m²</b></div><div><small>LEBAR</small><b>${esc(product.width)}</b></div><div><small>BERAT</small><b>${esc(product.weight_per_yard)}</b></div></div><p class="eyebrow">Pilih warna</p><div class="color-list">${product.variants.map((variant, index) => `<button class="color-btn ${index === 0 ? 'active' : ''}" data-variant="${Number(variant.id)}">${esc(variant.color)}</button>`).join('')}</div><div class="qty"><label>Jumlah roll</label><input id="quantity" type="number" min="${Number(product.moq)}" value="${Number(product.moq)}"></div><button class="primary-btn" id="add">Tambah ke keranjang · ${money(selected.price)}</button><div class="notice">Stok tersedia: <b id="stock">${esc(selected.available_stock)} roll</b>.</div></section></div>`; document.querySelectorAll('[data-variant]').forEach((button) => button.addEventListener('click', () => { document.querySelectorAll('[data-variant]').forEach((item) => item.classList.remove('active')); button.classList.add('active'); selected = product.variants.find((variant) => variant.id === Number(button.dataset.variant)); document.querySelector('#add').textContent = `Tambah ke keranjang · ${money(selected.price)}`; document.querySelector('#stock').textContent = `${selected.available_stock} roll`; })); document.querySelectorAll('[data-img]').forEach((button) => button.addEventListener('click', () => { document.querySelector('#product-main').src = button.dataset.img; document.querySelectorAll('[data-img]').forEach((item) => item.classList.remove('active')); button.classList.add('active'); })); document.querySelector('#add').addEventListener('click', () => addCart({ variant_id: selected.id, quantity: Number(document.querySelector('#quantity').value), product_name: product.name, variant_name: `${product.name} — ${selected.color}`, price: selected.price, image: product.image })); } catch (error) { root.innerHTML = `<div class="empty">${esc(error.message)}</div>`; } }
-function renderCart() { const cart = getCart(); const list = document.querySelector('#cart-list'); if (!list) return; if (!cart.length) { list.innerHTML = '<p class="empty">Keranjang masih kosong.</p>'; return; } list.innerHTML = cart.map((item) => `<div class="cart-row"><img src="${esc(asset(item.image))}"><div><b>${esc(item.product_name)}</b><small>${esc(item.variant_name)} · ${esc(item.quantity)} roll</small><strong>${money(item.price * item.quantity)}</strong></div></div>`).join(''); const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0); document.querySelector('#subtotal').textContent = money(subtotal); document.querySelector('#total').textContent = money(subtotal + 35000); }
-async function initCheckout() { updateCartCount(); renderCart(); document.querySelector('#checkout-form').addEventListener('submit', async (event) => { event.preventDefault(); const message = document.querySelector('#checkout-message'); const values = Object.fromEntries(new FormData(event.currentTarget)); try { const result = await api('/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer: values, address: values, notes: values.notes, items: getCart().map((item) => ({ variant_id: item.variant_id, quantity: Number(item.quantity) })) }) }); message.hidden = false; message.textContent = `Pesanan ${result.orderNumber} berhasil dibuat. Status pembayaran: pending.`; localStorage.removeItem(cartKey); updateCartCount(); renderCart(); } catch (error) { message.hidden = false; message.textContent = error.message; } }); }
+// Keranjang: tampilkan item dari localStorage, TAPI angka uang (subtotal, ongkir,
+// total) dihitung SERVER lewat /checkout/quote — supaya harga tier & ongkir tidak
+// pernah beda dari yang ditagih. Nol angka hardcode di sisi klien.
+async function renderCart() {
+  const cart = getCart();
+  const list = document.querySelector('#cart-list');
+  if (!list) return;
+  if (!cart.length) { list.innerHTML = '<p class="empty">Keranjang masih kosong.</p>'; }
+  else {
+    list.innerHTML = cart.map((item) => `<div class="cart-row"><img src="${esc(asset(item.image))}"><div><b>${esc(item.product_name)}</b><small>${esc(item.variant_name)} · ${esc(item.quantity)} roll</small><strong>${money(item.price * item.quantity)}</strong></div></div>`).join('');
+  }
+  await refreshQuote();
+}
+
+// Ambil subtotal/ongkir/total dari server. Dipanggil saat halaman dibuka dan
+// setiap kali kota berubah. Kalau gagal, tampilkan pesan — JANGAN angka tebakan
+// (server tetap menghitung sendiri saat order dibuat, jadi server yang menang).
+async function refreshQuote() {
+  const subEl = document.querySelector('#subtotal');
+  const shipEl = document.querySelector('#shipping');
+  const totEl = document.querySelector('#total');
+  if (!subEl || !totEl) return;
+  const cart = getCart();
+  const cityInput = document.querySelector('#checkout-form [name="city"]');
+  const city = cityInput ? cityInput.value : '';
+  if (!cart.length) {
+    subEl.textContent = money(0);
+    if (shipEl) shipEl.textContent = money(0);
+    totEl.textContent = money(0);
+    return;
+  }
+  try {
+    const quote = await api('/checkout/quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: cart.map((item) => ({ variant_id: item.variant_id, quantity: Number(item.quantity) })), city }) });
+    subEl.textContent = money(quote.subtotal);
+    if (shipEl) shipEl.textContent = quote.shipping && quote.shipping.cost ? money(quote.shipping.cost) : 'Belum dihitung';
+    totEl.textContent = money(quote.total);
+  } catch (error) {
+    subEl.textContent = '—';
+    if (shipEl) shipEl.textContent = 'Belum bisa dihitung';
+    totEl.textContent = '—';
+  }
+}
+async function initCheckout() { updateCartCount(); await renderCart(); const cityInput = document.querySelector('#checkout-form [name="city"]'); if (cityInput) { let timer; cityInput.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(refreshQuote, 400); }); } document.querySelector('#checkout-form').addEventListener('submit', async (event) => { event.preventDefault(); const message = document.querySelector('#checkout-message'); const values = Object.fromEntries(new FormData(event.currentTarget)); try { const result = await api('/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer: values, address: values, notes: values.notes, items: getCart().map((item) => ({ variant_id: item.variant_id, quantity: Number(item.quantity) })) }) }); message.hidden = false; message.textContent = `Pesanan ${result.orderNumber} berhasil dibuat. Total ${money(result.total)}. Status pembayaran: pending.`; localStorage.removeItem(cartKey); updateCartCount(); await renderCart(); } catch (error) { message.hidden = false; message.textContent = error.message; } }); }
 // Label status — dipakai dashboard. Sumber kebenaran transisi ada di admin-orders.js.
 const ORDER_STATUS_LABEL = { pending_payment: 'Menunggu bayar', paid: 'Dibayar', processing: 'Diproses', packed: 'Dikemas', shipped: 'Dikirim', completed: 'Selesai', cancelled: 'Dibatalkan', refunded: 'Dikembalikan' };
 const PAYMENT_STATUS_LABEL = { pending: 'Menunggu', paid: 'Lunas', failed: 'Gagal', refunded: 'Dikembalikan', expired: 'Kedaluwarsa' };

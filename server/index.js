@@ -54,6 +54,60 @@ function flagValue(value, fallback = 0) { if (value === undefined || value === n
 function serializeProduct(product) { if (!product) return null; const available = Number(product.available_stock); const threshold = product.low_stock_threshold === null || product.low_stock_threshold === undefined ? null : Number(product.low_stock_threshold); return { ...product, featured: Boolean(product.featured), bestseller: Boolean(product.bestseller), sample_available: Boolean(product.sample_available), available_stock: available, low_stock_threshold: threshold, low_stock: threshold !== null && available <= threshold, image: product.image || '/img/fabric-hero.png' }; }
 function getPricing(productId, quantity) { return one('SELECT * FROM price_tiers WHERE product_id=? AND min_quantity<=? AND (max_quantity IS NULL OR max_quantity>=?) ORDER BY min_quantity DESC LIMIT 1', [productId, quantity, quantity]); }
 
+// Status order -> status pembayaran. SATU peta, satu tempat. Dipakai saat admin
+// mengubah status order supaya `payments.status` tidak pernah tertinggal dari
+// `orders.status` (kalau tertinggal, KPI "Menunggu bayar" menghitung order yang
+// sudah refund/batal — angka dashboard jadi bohong).
+function paymentStatusForOrderStatus(status) {
+  if (status === 'pending_payment') return 'pending';
+  if (status === 'cancelled' || status === 'refunded') return 'refunded';
+  return 'paid';
+}
+
+// Hitung item order dari DB: validasi varian aktif + stok, lalu terapkan harga
+// tier. Dipakai BERSAMA oleh `POST /api/orders` dan `POST /api/checkout/quote`
+// supaya angka yang dilihat pelanggan MUSTAHIL beda dari yang ditagih. Ini akar
+// bug lama: checkout menghitung sendiri (harga localStorage, ongkir flat 35rb).
+function expandItems(items) {
+  return (items || []).map((item) => {
+    const variant = one('SELECT v.*, p.name AS product_name, c.name AS color, inv.stock, inv.reserved_stock FROM product_variants v JOIN products p ON p.id=v.product_id JOIN colors c ON c.id=v.color_id JOIN inventory inv ON inv.variant_id=v.id WHERE v.id=? AND v.active=1 AND p.status=?', [item.variant_id, 'active']);
+    if (!variant) throw new Error('Variant tidak aktif');
+    const quantity = Number(item.quantity);
+    const available = variant.stock - variant.reserved_stock;
+    if (!Number.isInteger(quantity) || quantity < 1 || available < quantity) throw new Error(`Stok ${variant.product_name} tidak mencukupi`);
+    const tier = getPricing(variant.product_id, quantity);
+    return { ...variant, quantity, unit_price: tier?.price || variant.price, variant_name: `${variant.product_name} — ${variant.color}` };
+  });
+}
+
+// Hitung subtotal (dengan tier) + ongkir + total dari item yang sudah di-expand.
+// SATU-satunya tempat rumus uang pesanan hidup, dipakai `POST /api/orders` dan
+// `POST /api/checkout/quote` — supaya angka yang dilihat pelanggan mustahil beda
+// dari yang ditagih.
+function quoteFromExpanded(expanded, city) {
+  const subtotal = expanded.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
+  const ship = shipping.quote({ quantity: expanded.reduce((sum, item) => sum + item.quantity, 0), city: city || '' });
+  return { expanded, subtotal, ship, total: subtotal + ship.cost };
+}
+
+function quoteOrder(items, city) {
+  const { expanded, subtotal, ship, total } = quoteFromExpanded(expandItems(items), city);
+  return {
+    items: expanded.map((item) => ({
+      variant_id: item.id,
+      product_name: item.product_name,
+      variant_name: item.variant_name,
+      sku: item.sku,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      subtotal: item.unit_price * item.quantity,
+    })),
+    subtotal,
+    shipping: ship,
+    total,
+  };
+}
+
 app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'atandra-commerce-api' }));
 app.post('/api/auth/register', (req, res) => { const { name, email, password, phone = '', company_name = '' } = req.body || {}; if (!name || !email || !password || password.length < 8) return res.status(400).json({ error: 'Nama, email, dan password minimal 8 karakter wajib diisi' }); if (one('SELECT id FROM users WHERE email=?', [email.toLowerCase()])) return res.status(409).json({ error: 'Email sudah terdaftar' }); const customer = run('INSERT INTO customers (name,email,phone,company_name) VALUES (?,?,?,?)', [name.trim(), email.toLowerCase(), phone, company_name]); const user = run('INSERT INTO users (email,password_hash,role,customer_id) VALUES (?,?,?,?)', [email.toLowerCase(), hashPassword(password), 'customer', customer.id]); setSessionCookie(res, createSession(user.id)); res.status(201).json({ user: { id: user.id, email: email.toLowerCase(), role: 'customer' } }); });
 const adminRegistrationAttempts = new Map();
@@ -124,6 +178,16 @@ app.get('/api/categories', (_req, res) => res.json(all('SELECT * FROM categories
 app.get('/api/products', (req, res) => { const { clause, params } = productWhere(req.query); const products = all(`${productSelect} WHERE ${clause} GROUP BY p.id ORDER BY p.featured DESC, p.created_at DESC`, params).map(serializeProduct); res.json({ products, total: products.length }); });
 app.get('/api/products/:slug', (req, res) => { const product = one(`${productSelect} WHERE p.slug=? GROUP BY p.id`, [req.params.slug]); if (!product) return res.status(404).json({ error: 'Product tidak ditemukan' }); const variants = all('SELECT v.*, c.name AS color, c.code AS color_code, inv.stock, inv.reserved_stock, inv.stock-inv.reserved_stock AS available_stock FROM product_variants v JOIN colors c ON c.id=v.color_id JOIN inventory inv ON inv.variant_id=v.id WHERE v.product_id=? AND v.active=1 ORDER BY v.id', [product.id]); const tiers = all('SELECT * FROM price_tiers WHERE product_id=? ORDER BY min_quantity', [product.id]); const images = all('SELECT url, alt FROM product_images WHERE product_id=? ORDER BY sort_order', [product.id]); res.json({ product: { ...serializeProduct(product), variants, tiers, images } }); });
 app.get('/api/shipping/quote', (req, res) => res.json(shipping.quote({ quantity: Number(req.query.quantity || 1), city: req.query.city || '' })));
+// Quote pesanan dari SERVER: subtotal (dengan harga tier) + ongkir + total.
+// Tanpa efek samping (tidak membuat order / menyentuh stok). Checkout memakai ini
+// supaya angka yang dilihat pelanggan = angka yang ditagih.
+app.post('/api/checkout/quote', (req, res) => {
+  try {
+    const { items = [], city = '' } = req.body || {};
+    if (!Array.isArray(items) || !items.length) return res.status(400).json({ error: 'Item wajib diisi' });
+    res.json(quoteOrder(items, city));
+  } catch (error) { res.status(400).json({ error: error.message }); }
+});
 
 app.post('/api/orders', (req, res) => {
   try {
@@ -133,8 +197,7 @@ app.post('/api/orders', (req, res) => {
       let customerRow = one('SELECT id FROM customers WHERE email=?', [customer.email]);
       if (!customerRow) customerRow = run('INSERT INTO customers (name,email,phone,company_name) VALUES (?,?,?,?)', [customer.name, customer.email, customer.phone || '', customer.company_name || '']);
       const addressRow = run('INSERT INTO addresses (customer_id,full_name,phone,address,province,city,district,postal_code) VALUES (?,?,?,?,?,?,?,?)', [customerRow.id, customer.name, customer.phone || '', address.address, address.province || '', address.city, address.district || '', address.postal_code || '']);
-          const expanded = items.map((item) => { const variant = one('SELECT v.*, p.name AS product_name, c.name AS color, inv.stock, inv.reserved_stock FROM product_variants v JOIN products p ON p.id=v.product_id JOIN colors c ON c.id=v.color_id JOIN inventory inv ON inv.variant_id=v.id WHERE v.id=? AND v.active=1 AND p.status=?', [item.variant_id, 'active']); if (!variant) throw new Error('Variant tidak aktif'); const quantity = Number(item.quantity); const available = variant.stock - variant.reserved_stock; if (!Number.isInteger(quantity) || quantity < 1 || available < quantity) throw new Error(`Stok ${variant.product_name} tidak mencukupi`); const tier = getPricing(variant.product_id, quantity); return { ...variant, quantity, unit_price: tier?.price || variant.price, variant_name: `${variant.product_name} — ${variant.color}` }; });
-      const subtotal = expanded.reduce((sum, item) => sum + item.unit_price * item.quantity, 0); const ship = shipping.quote({ quantity: expanded.reduce((sum, item) => sum + item.quantity, 0), city: address.city }); const orderNumber = `AT-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}-${String((one('SELECT COUNT(*) AS total FROM orders')?.total || 0) + 1).padStart(4, '0')}`; const order = run('INSERT INTO orders (order_number,customer_id,address_id,subtotal,shipping,total,notes) VALUES (?,?,?,?,?,?,?)', [orderNumber, customerRow.id, addressRow.id, subtotal, ship.cost, subtotal + ship.cost, notes]); expanded.forEach((item) => { run('INSERT INTO order_items (order_id,variant_id,product_name,variant_name,sku,quantity,unit_price,subtotal) VALUES (?,?,?,?,?,?,?,?)', [order.id, item.id, item.product_name, item.variant_name, item.sku, item.quantity, item.unit_price, item.unit_price * item.quantity]); run('UPDATE inventory SET reserved_stock=reserved_stock+? WHERE variant_id=?', [item.quantity, item.id]); }); const paymentData = payment.createPayment({ orderNumber, amount: subtotal + ship.cost }); run('INSERT INTO payments (order_id,provider,provider_reference,amount) VALUES (?,?,?,?)', [order.id, paymentData.provider, paymentData.reference, paymentData.amount]); run('INSERT INTO shipments (order_id,method,cost,estimated_days) VALUES (?,?,?,?)', [order.id, ship.method, ship.cost, ship.estimatedDays]); notifications.emit('new_order', { orderNumber, total: subtotal + ship.cost }); return { orderId: order.id, orderNumber, total: subtotal + ship.cost, payment: paymentData, shipping: ship };
+          const { expanded, subtotal, ship } = quoteFromExpanded(expandItems(items), address.city); const orderNumber = `AT-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}-${String((one('SELECT COUNT(*) AS total FROM orders')?.total || 0) + 1).padStart(4, '0')}`; const order = run('INSERT INTO orders (order_number,customer_id,address_id,subtotal,shipping,total,notes) VALUES (?,?,?,?,?,?,?)', [orderNumber, customerRow.id, addressRow.id, subtotal, ship.cost, subtotal + ship.cost, notes]); expanded.forEach((item) => { run('INSERT INTO order_items (order_id,variant_id,product_name,variant_name,sku,quantity,unit_price,subtotal) VALUES (?,?,?,?,?,?,?,?)', [order.id, item.id, item.product_name, item.variant_name, item.sku, item.quantity, item.unit_price, item.unit_price * item.quantity]); run('UPDATE inventory SET reserved_stock=reserved_stock+? WHERE variant_id=?', [item.quantity, item.id]); }); const paymentData = payment.createPayment({ orderNumber, amount: subtotal + ship.cost }); run('INSERT INTO payments (order_id,provider,provider_reference,amount) VALUES (?,?,?,?)', [order.id, paymentData.provider, paymentData.reference, paymentData.amount]); run('INSERT INTO shipments (order_id,method,cost,estimated_days) VALUES (?,?,?,?)', [order.id, ship.method, ship.cost, ship.estimatedDays]); notifications.emit('new_order', { orderNumber, total: subtotal + ship.cost }); return { orderId: order.id, orderNumber, total: subtotal + ship.cost, payment: paymentData, shipping: ship };
     });
     res.status(201).json(result);
   } catch (error) { res.status(400).json({ error: error.message }); }
@@ -288,7 +351,9 @@ app.post('/api/admin/variants/bulk-price', ...adminOnly, (req, res) => {
   res.json({ updated: changes.length, field, mode, changes });
 });
 app.put('/api/admin/products/:id/pricing', ...adminOnly, (req, res) => { const tiers = Array.isArray(req.body?.tiers) ? req.body.tiers : []; if (!tiers.length || tiers.some((tier) => Number(tier.min_quantity) < 1 || Number(tier.price) < 0)) return res.status(400).json({ error: 'Pricing tier tidak valid' }); transaction(() => { run('DELETE FROM price_tiers WHERE product_id=?', [req.params.id]); tiers.forEach((tier) => run('INSERT INTO price_tiers (product_id,min_quantity,max_quantity,price,label) VALUES (?,?,?,?,?)', [req.params.id, tier.min_quantity, tier.max_quantity || null, tier.price, tier.label || `${tier.min_quantity}+ roll`])); }); res.json({ tiers: all('SELECT * FROM price_tiers WHERE product_id=? ORDER BY min_quantity', [req.params.id]) }); });
-app.patch('/api/admin/orders/:id', ...adminOnly, (req, res) => { const statuses = ['pending_payment', 'paid', 'processing', 'packed', 'shipped', 'completed', 'cancelled', 'refunded']; const { status, tracking_number } = req.body || {}; if (!statuses.includes(status)) return res.status(400).json({ error: 'Status order tidak valid' }); run('UPDATE orders SET status=?,tracking_number=COALESCE(?,tracking_number),updated_at=CURRENT_TIMESTAMP WHERE id=?', [status, tracking_number || null, req.params.id]); run('UPDATE shipments SET status=?,tracking_number=COALESCE(?,tracking_number) WHERE order_id=?', [status === 'shipped' ? 'shipped' : status, tracking_number || null, req.params.id]); notifications.emit('order_status_changed', { orderId: req.params.id, status }); res.json({ ok: true }); });
+app.patch('/api/admin/orders/:id', ...adminOnly, (req, res) => { const statuses = ['pending_payment', 'paid', 'processing', 'packed', 'shipped', 'completed', 'cancelled', 'refunded']; const { status, tracking_number } = req.body || {}; if (!statuses.includes(status)) return res.status(400).json({ error: 'Status order tidak valid' }); transaction(() => { run('UPDATE orders SET status=?,tracking_number=COALESCE(?,tracking_number),updated_at=CURRENT_TIMESTAMP WHERE id=?', [status, tracking_number || null, req.params.id]); run('UPDATE shipments SET status=?,tracking_number=COALESCE(?,tracking_number) WHERE order_id=?', [status === 'shipped' ? 'shipped' : status, tracking_number || null, req.params.id]); // Sinkronkan payments.status dengan status order (satu peta). Tanpa ini, KPI
+    // 'Menunggu bayar' menghitung order yang sudah refund/batal — angka bohong.
+    const payStatus = paymentStatusForOrderStatus(status); run("UPDATE payments SET status=?,paid_at=CASE WHEN ?='paid' AND paid_at IS NULL THEN CURRENT_TIMESTAMP ELSE paid_at END WHERE order_id=?", [payStatus, payStatus, req.params.id]); }); notifications.emit('order_status_changed', { orderId: req.params.id, status }); res.json({ ok: true }); });
 
 // ---- Upload gambar produk ----
 // Body mentah (bukan multipart) supaya tidak perlu dependency baru; satu request
